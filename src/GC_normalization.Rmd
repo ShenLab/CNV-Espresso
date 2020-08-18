@@ -1,6 +1,7 @@
 ---
 title: "GC normalization by CANOES."
 output: html_notebook
+Author: Renjie Tan
 ---
 
 ############################################################################
