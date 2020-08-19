@@ -8,17 +8,18 @@ Author: Renjie Tan
 # STEP 1: Fetch the directory locations and file names from the shell script
 ############################################################################
 ```{r}
+library(ggplot2)
 # For imac
-script_path <- '/Users/rtan/biocluster_home/CNV_espresso/src/'
+script_path <- '/Users/rtan/biocluster_home/CNV_Espresso/src/'
 data_path   <- '/Users/rtan/terra/SPARK/0-data/RC/spark_merged_RC/'
-output_path  <- '/Users/rtan/biocluster_home/CNV_espresso/'
+output_path  <- '/Users/rtan/biocluster_home/CNV_Espresso/'
 # For MacbookPro
 script_path <- '/Users/renjietan/Documents/GitHub/cnv_espresso/src/'
 data_path   <- '/Users/renjietan/Dropbox/tmp_spark_canoes_data/'
 output_path  <- '/Users/renjietan/Documents/GitHub/cnv_espresso/result/'
 
 batch_name  <- 'spark1'
-source(paste(script_path,"CANOES.R",sep=""))
+#source(paste(script_path,"CANOES.R",sep=""))
 
 # sample list
 sample_name_file <- paste(data_path,'merged_sample_list_', batch_name,'.list',sep='')
@@ -45,9 +46,15 @@ file.exists(gc_file)
 gc <- read.table(bzfile(gc_file))$V2
 
 # input file
-input_file_name <- paste(data_path, 'cons_canoes_reads_',batch_name,'.bz2',sep='') 
-file.exists(input_file_name)
-canoes.reads <- read.table(bzfile(input_file_name))
+input_file_RDate <- paste(data_path, 'cons_canoes_reads_',batch_name,'.bz2.RData',sep='') 
+if(file.exists(input_file_RDate)){
+  load(input_file_RDate)
+}else{
+  input_file_name <- paste(data_path, 'cons_canoes_reads_',batch_name,'.bz2',sep='') 
+  file.exists(input_file_name)
+  canoes.reads <- read.table(bzfile(input_file_name))
+  save(canoes.reads,file = input_file_RDate)
+}
 dim(canoes.reads)
 head(canoes.reads)
 ```
@@ -84,7 +91,16 @@ plot(canoes.reads_test$gc,canoes.reads_test$SP0000203, ylim = c(0,500))
 ```
 ```{r}
 range(RC_beforeNorm$SP0000203)
-loessMod50 <- loess(SP0000203 ~ gc, data=RC_beforeNorm, span=0.50) # 50% smoothing span
+
+
+loessMod50_file <- paste(data_path, 'loessMod50.RData',sep='') 
+if(file.exists(input_file_RDate)){
+  load(loessMod50_file)
+}else{
+  loessMod50 <- loess(SP0000203 ~ gc, data=RC_beforeNorm, span=0.50) # 50% smoothing span
+  save(loessMod50,file = loessMod50_file)
+}
+
 # get smoothed output
 smoothed50 <- predict(loessMod50) 
 # Plot it
@@ -255,13 +271,19 @@ sample.weights <- weights / sum(weights)
 RT: Calculate the weighted read count from reference samples
 ```{r}
 head(A)
+dim(A)
 ```
 ```{r}
+length(sample.weights)
 sample.weights
+w_matrix <- as.matrix(sample.weights)
+dim(w_matrix)
 ```
 
+The weighted sum RC of the reference samples. same as the weighted mean function ("wtd.mean") in below.
 ```{r}
-counts[, reference.samples]*sample.weights
+ref_weighted_rc <- A%*%w_matrix
+head(ref_weighted_rc)
 ```
 
 ```{r}
@@ -272,6 +294,9 @@ write.table(paste('[',format(Sys.time()),'] [',sample.name,'] calculate weighted
 cat(paste('[',format(Sys.time()),']'," calculate weighted mean of read count\n",sep=''))
 counts$mean <- apply(counts[, reference.samples], 
                      1, wtd.mean, sample.weights)
+```
+
+```{r}
 targets <- counts$target
 write.table(paste('[',format(Sys.time()),'] [',sample.name,'] exclude probes with all zero counts',sep=''), file=log_file, col.names=FALSE, append=TRUE)
 cat(paste('[',format(Sys.time()),']'," exclude probes with all zero counts\n",sep=''))
@@ -281,6 +306,13 @@ nonzero.rows.df <- data.frame(target=counts$target,
                               nonzero.rows=nonzero.rows)
 
 counts <- counts[nonzero.rows, ]
+RC_beforeNorm <- RC_beforeNorm[nonzero.rows,] #RT
+dim(counts)
+dim(RC_beforeNorm)
+length(counts$mean)
+```
+
+```{r}
 # get the distances between consecutive probes
 distances <- GetDistances(counts)
 # estimate the read count variance at each probe
@@ -299,14 +331,14 @@ head(emission.probs)
 ```
 
 ######################################################
-# [TBD] Here need to draw the GC plots for normalized GC
+# [GC plot] GC plots after normalization
 ######################################################
 ```{r}
 RC_afterNorm <- counts
-RC_afterNorm[1:10,c(1,2,3,4,5,6,25)]
+RC_afterNorm[1:5,c(1,2,3,4,5,6,25)]
 ```
 ```{r}
-RC_beforeNorm[1:10,c(1,2,3,4,5,6,25)]
+RC_beforeNorm[1:5,c(1,2,3,4,5,6,25)]
 ```
 
 ```{r}
@@ -314,14 +346,20 @@ RC_afterNorm_test <- RC_afterNorm[1:8000,]
 dim(RC_afterNorm_test)
 plot(RC_afterNorm_test$gc,RC_afterNorm_test$SP0000203, ylim = c(0,500))
 ```
+```{r}
+RC_ref_weighted_df <- cbind(RC_afterNorm[,c(1:5)],counts$mean,RC_afterNorm$SP0000203)
+head(RC_ref_weighted_df)
+plot(RC_ref_weighted_df$gc,RC_ref_weighted_df$`RC_afterNorm$SP0000203`/RC_ref_weighted_df$`counts$mean`,ylim = c(0,5))
+```
 
 ```{r}
-range(RC_afterNorm$SP0000203)
-loessMod50_afterNorm <- loess(SP0000203 ~ gc, data=RC_afterNorm, span=0.50) # 50% smoothing span
+range(RC_ref_weighted_df$`counts$mean`)
+head(RC_ref_weighted_df)
+loessMod50_afterNorm <- loess(counts$mean ~ gc, data=RC_ref_weighted_df, span=0.50) # 50% smoothing span
 # get smoothed output
 smoothed50_afterNorm <- predict(loessMod50_afterNorm) 
 # Plot it
-ii <- ggplot(RC_afterNorm, aes(gc, smoothed50_afterNorm))
+ii <- ggplot(RC_ref_weighted_df, aes(gc, smoothed50_afterNorm))
 ii + geom_line()
 ```
 
