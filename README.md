@@ -1,7 +1,7 @@
-# CNV_Espresso
-a tool designed for validating Copy Number Variants from Exome Sequencing PREdictionS in SilicO
+# _CNV Espresso_
+### a tool designed for validating Copy Number Variants from Exome Sequencing PREdictionS in SilicO
 
-## path
+#### Step 0. Configure the path
 ```
 GATK_SW_DIR
 TARGET_PROBES
@@ -13,9 +13,9 @@ OUTPUT_DIR='/home/rt2776/CNV_Espresso/result/NormReadCountRatio/'
 
 ```
 
-## Step 1. Calculate RD/RC for each sample in the given cohort
+#### Step 1. Calculate RD/RC for each sample in the given cohort
 
-## Step 2. Extract GC content for each interval (Not essential)
+#### Step 2. Extract GC content for each interval (Not essential)
 ```
 java -Xmx2000m -Djava.io.tmpdir=${DATA_LOGS_DIR} \
                       -jar ${GATK_SW_DIR}GenomeAnalysisTK.jar \
@@ -25,7 +25,7 @@ java -Xmx2000m -Djava.io.tmpdir=${DATA_LOGS_DIR} \
                       -o ${DATA_DIR}gc.txt
 ```
 
-## Step 3. Extract read count ratio for each sample
+#### Step 3. Extract read count ratio for each sample
 ```
 TEST_SAMPLE='SP0000203'
 BATCH_NAME='spark1'
