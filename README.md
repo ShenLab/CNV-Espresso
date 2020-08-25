@@ -1,5 +1,5 @@
 # _CNV Espresso_
-### a tool designed for validating Copy Number Variants from Exome Sequencing PREdictionS in SilicO
+#### A tool designed for validating **C**opy **N**umber **V**ariants from **E**xome **S**equencing **PRE**diction**S** in **S**ilic**O**
 
 #### Step 0. Configure the path
 ```
