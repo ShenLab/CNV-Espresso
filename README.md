@@ -1,5 +1,5 @@
 # _CNV Espresso_
-#### A tool designed for validating **C**opy **N**umber **V**ariants from **E**xome **S**equencing **PRE**diction**S** in **S**ilic**O**
+A tool designed for validating **C**opy **N**umber **V**ariants from **E**xome **S**equencing **PRE**diction**S** in **S**ilic**O**
 
 #### Step 0. Configure the path
 ```
@@ -35,4 +35,6 @@ bgzip ${OUTPUT_DIR}${TEST_SAMPLE}.txt
 tabix -p bed ${OUTPUT_DIR}${TEST_SAMPLE}.txt.gz
 
 ```
+#### Step 3. [Cluster] Extract read count ratio for each sample by cluster
+SAMPLE_W_BATCH_LIST=/home/rt2776/SPARK/CANOES/0-RC/spark_27270_by10Groups/spark_w_batch.list
 
