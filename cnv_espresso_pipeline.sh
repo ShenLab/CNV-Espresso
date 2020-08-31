@@ -8,6 +8,7 @@ TARGET_PROBES
 REF_GENOME
 
 SCRIPTS_DIR='/home/rt2776/CNV_Espresso/src/'
+CNV_TOOLKIT_DIR='/home/rt2776/cnv_toolkit/scripts/'
 DATA_DIR='/home/rt2776/SPARK/CANOES/0-RC/spark_merged_RC/'
 OUTPUT_DIR='/home/rt2776/CNV_Espresso/result/NormReadCountRatio/'
 
@@ -46,6 +47,10 @@ qsub -tc 36 -t 1-12744 ${SCRIPTS_DIR}extract_rc_ratio_cluster.sh ${SCRIPTS_DIR} 
 sh ${SCRIPTS_DIR}extract_rc_ratio_sample_check.sh ${SAMPLE_W_BATCH_LIST} ${OUTPUT_DIR}
 
 #### Step 4. Extract Read Count info for training set
+python ${CNV_TOOLKIT_DIR}5_annotation.py rc_ratio \
+    --input /home/rt2776/CNV_Espresso/result/training_set_final_all_clean_af.cnv.bz2 \
+    --rc_ratio /home/rt2776/CNV_Espresso/result/NormReadCountRatio \
+    --output /home/rt2776/CNV_Espresso/result/training_set_w_rc.cnv
 
 
 #### Step 5. Extract Read Count info for testing set
