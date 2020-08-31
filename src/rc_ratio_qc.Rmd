@@ -1,0 +1,52 @@
+---
+title: "The general overview of read count ratio between True and False CNVs"
+output: html_notebook
+---
+```{r}
+library(ggplot2)
+training_rc_file   <- '/Users/rtan/terra/CNV_Espresso/result/training_set_w_rc.cnv'
+training_rc_df <- read.table(file=training_rc_file,header=TRUE,sep = "\t",row.names = NULL)
+head(training_rc_df)
+colnames(training_rc_df)
+```
+Filter non-value rows
+```{r}
+nrow(training_rc_df)
+training_rc_df <- training_rc_df[which(training_rc_df$RC_Ratio!="[No tabular file]"),]
+nrow(training_rc_df)
+```
+
+read count number
+```{r}
+rc_mean <- function(row){
+  rc_list <- gsub("\\[||\\]|| ","",row$RC_Ratio)
+  rc_value <- as.numeric(strsplit(rc_list,split=',')[[1]])
+  rc_mean_value <- mean(rc_value)
+  return(rc_mean_value)
+}
+```
+
+```{r}
+rc.mean <- matrix(NA,nrow=nrow(training_rc_df),ncol=1)
+for(i in 1:nrow(training_rc_df)){
+  rc.mean[i,1] <- as.numeric(rc_mean(training_rc_df[i,]))
+}
+training_result <- cbind(training_rc_df,rc.mean)
+head(training_result)
+```
+```{r}
+nrow(training_result)
+true_cnv_df  <- training_result[which(training_result$LABEL_VAL==1),]
+false_cnv_df <- training_result[which(training_result$LABEL_VAL==0),]
+nrow(true_cnv_df)
+nrow(false_cnv_df)
+nrow(true_cnv_df)+nrow(false_cnv_df)
+false_cnv_df[,-c(18)]
+true_cnv_df[,-c(18)]
+```
+```{r}
+f <- ggplot(training_result,aes(x=TYPE,y=rc.mean, fill=as.factor(LABEL_VAL)))
+f+geom_boxplot()+ylim(c(0,2))+labs(x="CNV Type", y="Mean Read Count")+
+ scale_fill_discrete( name="LABEL", breaks=c(1,0), labels=c("True","False"))
+```
+
