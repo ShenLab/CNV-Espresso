@@ -7,6 +7,7 @@ GATK_SW_DIR
 TARGET_PROBES
 REF_GENOME
 
+PROJECT_DIR='/home/rt2776/CNV_Espresso/'
 SCRIPTS_DIR='/home/rt2776/CNV_Espresso/src/'
 CNV_TOOLKIT_DIR='/home/rt2776/cnv_toolkit/scripts/'
 DATA_DIR='/home/rt2776/SPARK/CANOES/0-RC/spark_merged_RC/'
@@ -52,8 +53,14 @@ python ${CNV_TOOLKIT_DIR}5_annotation.py rc_ratio \
     --rc_ratio /home/rt2776/CNV_Espresso/result/NormReadCountRatio \
     --output /home/rt2776/CNV_Espresso/result/training_set_w_rc.cnv
 
+#### Step 5. Split Read Count info in a CNV into multiple same-size windows
+python ${SCRIPTS_DIR}cnv_espresso.py split \
+    --input ${PROJECT_DIR}result/training_set_w_rc_clean.cnv \
+    --output ${PROJECT_DIR}result/training_set_w_rc_equal_win.cnv \
+    --num_target 3
 
-#### Step 5. Extract Read Count info for testing set
+
+#### Step . Extract Read Count info for testing set
 
 
 #### Step 6. Build the Deep Learning model 
