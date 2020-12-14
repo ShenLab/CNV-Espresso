@@ -4,29 +4,32 @@ import pdb
 import sys
 import os
 import gzip
+import re
 
 def loadRD(filename):
-    if os.path.splitext(filename)[-1][1:] == "gz":
-        f = gzip.open(filename,mode='rt')
-    else:
-        f = open(filename)
-#    line = f.readline()
-#    line = line.strip()
-#    colsnum = len(line.split('\t'))
-    f.seek(0)
-    chr_str = np.loadtxt(f, dtype=np.str, delimiter='\t', skiprows=0, usecols=(0,)) 
-    f.seek(0)
-    start = np.loadtxt(f, dtype=np.int, delimiter='\t', skiprows=0, usecols=(1,)) 
-    f.seek(0)
-    stop = np.loadtxt(f, dtype=np.int, delimiter='\t', skiprows=0, usecols=(2,)) 
-    f.seek(0)
-    RD = np.loadtxt(f, dtype=np.float, delimiter='\t', skiprows=0, usecols=(3,)) 
-    return {'chr': chr_str, 'start': start, 'stop': stop, 'RD': RD}
+#    if os.path.splitext(filename)[-1][1:] == "gz":
+#        f = gzip.open(filename,mode='rt')
+#    else:
+#        f = open(filename)
+#    f.seek(0)
+#    chr_str = np.loadtxt(f, dtype=np.str, delimiter='\t', skiprows=0, usecols=(0,)) 
+#    f.seek(0)
+#    start = np.loadtxt(f, dtype=np.int, delimiter='\t', skiprows=0, usecols=(1,)) 
+#    f.seek(0)
+#    stop = np.loadtxt(f, dtype=np.int, delimiter='\t', skiprows=0, usecols=(2,)) 
+#    f.seek(0)
+#    RD = np.loadtxt(f, dtype=np.float, delimiter='\t', skiprows=0, usecols=(3,)) 
+#    return {'chr': chr_str, 'start': start, 'stop': stop, 'RD': RD}
+#
+    rd_matrix = np.loadtxt(filename, delimiter='\t', skiprows=0,
+            dtype={'names': ('chr', 'start', 'stop','RD'),
+                'formats': ('U4', np.int, np.int, np.float)}) #TODO: how to define U2 or U1 or U4? potential risk 
+    return rd_matrix
 
 def loadWindows(windows_filename):
     targets = np.loadtxt(windows_filename, delimiter='\t', skiprows=0,
             dtype={'names': ('chr', 'start', 'stop','interval','unknow1','gc','mappability','unknow2'),
-                   'formats': ('U1', np.int, np.int, 'U20', np.int, np.float, np.float, np.int)})
+                   'formats': ('U4', np.int, np.int, 'U20', np.int, np.float, np.float, np.int)})
     return targets
 
 ### original erds-exome scripts
@@ -224,12 +227,13 @@ def filter_list_by_list(list, filter):
     return [list[x] for x in range(len(list)) if x not in filter]
 
 def output_to_file(results,file_name):
-    path = os.getcwd() 
+#    path = os.getcwd() 
+    path = os.path.dirname(file_name)
 
     if not os.path.exists(path):
         os.mkdir(path)
 
-    file_name = path + '/' + file_name
+#    file_name = path + '/' + file_name
     fp = open(file_name,'w')
     if type(results) == list:
         for result_line in results:
@@ -248,7 +252,24 @@ def output_to_file(results,file_name):
                     fp.write(str(each_one))
                     fp.write('\t')
                 fp.write('\n')
+    elif type(results) == np.ndarray:
+        np.savetxt(file_name, results, fmt='%s', delimiter='\t')
     else:
         print ('unsupport results type!')
-    print ('The variable has already output to %s\n\n'%file_name)
+    print ('The variable has already output to %s'%file_name)
     fp.close()
+
+def fileToList(file_name):
+    result_list = []
+    extension = os.path.splitext(file_name)[-1][1:]
+    if extension == 'bz2':
+        fp = bz2.open(file_name, "rt")
+    else:
+        fp = open(file_name)
+    for row in fp:
+        row = row.strip()
+        row = row.replace("\"","")
+        row = re.split(r'[;,\s]\s*', row)
+        result_list.append(row[0])
+    fp.close()
+    return result_list    

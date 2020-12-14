@@ -17,14 +17,22 @@ import time
 
 def normalization(args): 
     windows_file = str(args.windows)
-    input_file   = str(args.input)
-    input_dir    = os.path.dirname(input_file)
-    if input_dir != '':
-        input_dir = input_dir + '/'
+    input_file_list = []
+    if args.input and not args.input_list:
+        input_file = str(args.input)
+        input_file_list.append(input_file)
 
-    output_file = input_file + '.norm'
+    elif args.input_list:
+        input_file_list = df.fileToList(args.input_list)
+    else:
+        print("You must input an input file or file list.")
+        exit(0)
+
     if args.output:
-        output_file = input_dir + str(args.output) + '.norm'
+        output_dir   = str(args.output)
+        output_dir = output_dir + '/'
+    else:
+        output_dir = os.getcwd() 
 
     print('Loading windows.bed ...')
     windows_dict = df.loadWindows(windows_file)
@@ -34,57 +42,66 @@ def normalization(args):
     windwos_gc   = windows_dict['gc']
     windows_mappability = windows_dict['mappability']
 
-    print('Loading %s ...'% input_file)
-    input_sample_dict = df.loadRD(input_file)
-    input_sample_chr   = input_sample_dict['chr']
-    input_sample_start = input_sample_dict['start']
-    input_sample_stop  = input_sample_dict['stop']
-    input_sample_rd    = input_sample_dict['RD']
+    for input_file in input_file_list:
+        input_file = input_file
+        (input_dir,input_name) = os.path.split(input_file)
+        (input_filename,input_extension) = os.path.splitext(input_name)
 
-    if not np.array_equal(input_sample_chr, windows_chr) or \
-            not np.array_equal(input_sample_start, windows_start) or \
-            not np.array_equal(input_sample_stop, windows_stop):
-                print("[Error] The windows file is not consisitant with input sample RD file.")
-                sys.exit(0)
+        output_file = output_dir + input_filename + '.norm'
+        output_parameter_file = output_dir + input_filename + '.nb.parm'
 
-    GC_percentage = np.round(windwos_gc*100)
-    GC_index = {}
-    for ind in range(len(GC_percentage)):
-        gc = int(GC_percentage[ind])
+        print('Loading %s ...'% input_file)
+        input_sample_dict = df.loadRD(input_file)
+        input_sample_chr   = input_sample_dict['chr']
+        input_sample_start = input_sample_dict['start']
+        input_sample_stop  = input_sample_dict['stop']
+        input_sample_rd    = input_sample_dict['RD']
 
-        if gc in GC_index:
-            GC_index[gc].append(ind)
-        else:
-            GC_index[gc] = [ind]
+        if not np.array_equal(input_sample_chr, windows_chr) or \
+                not np.array_equal(input_sample_start, windows_start) or \
+                not np.array_equal(input_sample_stop, windows_stop):
+                    print("[Error] The windows file is not consisitant with input sample RD file.")
+                    sys.exit(0)
 
-    print( 'Normalizing by GC percentage...')
-    corrected_rd = np.zeros(len(input_sample_rd), dtype=np.float)
-    overall_median = np.median(GC_percentage)
-    for gc in GC_index.keys():
-        t_ind = GC_index[gc]
-        t_median = np.median(input_sample_rd[t_ind])
-        if t_median == 0:
-            print( 'WARNING. Median == 0, GC: %d' %(gc))
-            corrected_rd[t_ind] = 0
-        else:
-            corrected_rd[t_ind] = np.round(input_sample_rd[t_ind] * overall_median / t_median)
+        GC_percentage = np.round(windwos_gc*100)
+        GC_index = {}
+        for ind in range(len(GC_percentage)):
+            gc = int(GC_percentage[ind])
+
+            if gc in GC_index:
+                GC_index[gc].append(ind)
+            else:
+                GC_index[gc] = [ind]
+
+        print( 'Normalizing by GC percentage...')
+        corrected_rd = np.zeros(len(input_sample_rd), dtype=np.float)
+        overall_median = np.median(GC_percentage)
+        for gc in GC_index.keys():
+            t_ind = GC_index[gc]
+            t_median = np.median(input_sample_rd[t_ind])
+            if t_median == 0:
+                print( 'WARNING. Median == 0, GC: %d' %(gc))
+                corrected_rd[t_ind] = 0
+            else:
+                corrected_rd[t_ind] = np.round(input_sample_rd[t_ind] * overall_median / t_median)
 
 
-    # Estimate NB distribution  parameters
-    parameterLoader = ParameterEstimation(corrected_rd)
-    parameterList = parameterLoader.fit(corrected_rd,0.01,0.99)#TODO remove sex chromsomes and estimate them seperately
-    print("Estimated Paramters: ", parameterList)
-    mu = parameterList[0]
-    fi = parameterList[1]
-    sigma = (mu + (mu**2)*fi)**0.5
-    corrected_zscore = (corrected_rd - mu)/sigma
+        # Estimate NB distribution  parameters
+        parameterLoader = ParameterEstimation(corrected_rd)
+        parameterList = parameterLoader.fit(corrected_rd,0.01,0.99)#TODO remove sex chromsomes and estimate them seperately
+        print("Estimated Paramters: ", parameterList)
+        mu = parameterList[0]
+        fi = parameterList[1]
+        sigma = (mu + (mu**2)*fi)**0.5
+        corrected_zscore = (corrected_rd - mu)/sigma
 
-    output_ndarray = np.transpose(np.array([input_sample_chr, input_sample_start, input_sample_stop, GC_percentage, input_sample_rd, corrected_rd, corrected_zscore]))
-    print( 'Saving normalized read depth to file %s.'%output_file)
-    np.savetxt(output_file, output_ndarray,fmt='%s', delimiter='\t')
+        # Output
+        output_ndarray = np.transpose(np.array([input_sample_chr, input_sample_start, input_sample_stop, \
+                GC_percentage, input_sample_rd, corrected_rd, corrected_zscore]))
+        print( 'Saving normalized read depth to file %s'%output_file)
+        df.output_to_file(output_ndarray, output_file)
+        df.output_to_file(parameterList, output_parameter_file)
 
-#    jf.saveRPKMMatrix(output, samples, targets_str, np.transpose(corrected_rpkm))
-    
 
 parser = argparse.ArgumentParser(prog='cnv_espresso', description='Validate CNVs in silico')
 subparsers = parser.add_subparsers()
@@ -100,8 +117,9 @@ subparsers = parser.add_subparsers()
 #normalize read depth signal
 svd_parser = subparsers.add_parser('normalization', help="GC correction, zscore by negative distribution for a given sample")
 svd_parser.add_argument('--windows', required=True, help='Please input the target information including GC content')
-svd_parser.add_argument('--input', required=True, help='Please input a read depth file for a given sample')
-svd_parser.add_argument('--output', required=False, help='Normalized read depth signal')
+svd_parser.add_argument('--input', required=False, help='Please input a read depth file for a given sample')
+svd_parser.add_argument('--input_list', required=False, help='Please input a read depth file list for a given batch of samples')
+svd_parser.add_argument('--output', required=False, help='Output folder for normalized read depth files')
 svd_parser.set_defaults(func=normalization)
 
 ##RPKM files -> Matrix
