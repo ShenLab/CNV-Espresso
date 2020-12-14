@@ -1,0 +1,59 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+*Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+*Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+*Preview* button or press *Cmd+Shift+K* to preview the HTML file.
+
+```{r}
+library(ggplot2)
+require(IDPmisc) 
+
+
+gc_norm_file <- '/home/rt2776/cnv_espresso/data/SP0044942.cov.bed.gz.normalized_gc'
+gc_norm_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/data/SP0044942.cov.bed.gz.normalized_gc'
+gc_norm_df <- read.table(gc_norm_file)
+
+ls <- loess(gc_norm_df$V5~gc_norm_df$V4)
+pr.loess <- predict(ls)
+plot(gc_norm_df$V4,gc_norm_df$V5, ylim = c(0,300))
+e<-ggplot(gc_norm_df,aes(V4,V5))
+e+geom_point()
+e+geom_smooth(method=loess)
+
+ggplot(data = gc_norm_df) + geom_smooth(mapping = aes(x = V4, y = V6))
+
+gc_norm_plot <- gc_norm_df[which(gc_norm_df$V5 <=300),]
+iplot(gc_norm_plot$V4,gc_norm_plot$V5)
+
+# create a color palette to use in smoothed scatterplot
+library(RColorBrewer)
+buylrd = c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF",
+           "#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026") 
+myColRamp = colorRampPalette(c(buylrd))
+
+# smoothed scatterplot
+smoothScatter(x=gc_norm_plot$V4,gc_norm_plot$V5,
+              colramp=myColRamp,
+              main="Before GC normalization",
+              xlab="GC",
+              ylab="RD")
+```
+
+
+#After GC normalization
+```{r}
+plot(gc_norm_df$V4,gc_norm_df$V6, ylim = c(0,300))
+gc_norm_plot <- gc_norm_df[which(gc_norm_df$V6 <=300),]
+iplot(gc_norm_plot$V4,gc_norm_plot$V6)
+
+#https://rstudio-pubs-static.s3.amazonaws.com/151690_ac65a180e03641e2adc3cb2ecf6306c3.html
+smoothScatter(x=gc_norm_plot$V4,gc_norm_plot$V6,
+              colramp=myColRamp,
+              main="After GC normalization",
+              xlab="GC",
+              ylab="RD")
+```
+
