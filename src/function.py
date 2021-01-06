@@ -7,24 +7,31 @@ import gzip
 import re
 
 def loadRD(filename):
-#    if os.path.splitext(filename)[-1][1:] == "gz":
-#        f = gzip.open(filename,mode='rt')
-#    else:
-#        f = open(filename)
-#    f.seek(0)
-#    chr_str = np.loadtxt(f, dtype=np.str, delimiter='\t', skiprows=0, usecols=(0,)) 
-#    f.seek(0)
-#    start = np.loadtxt(f, dtype=np.int, delimiter='\t', skiprows=0, usecols=(1,)) 
-#    f.seek(0)
-#    stop = np.loadtxt(f, dtype=np.int, delimiter='\t', skiprows=0, usecols=(2,)) 
-#    f.seek(0)
-#    RD = np.loadtxt(f, dtype=np.float, delimiter='\t', skiprows=0, usecols=(3,)) 
-#    return {'chr': chr_str, 'start': start, 'stop': stop, 'RD': RD}
-#
     rd_matrix = np.loadtxt(filename, delimiter='\t', skiprows=0,
             dtype={'names': ('chr', 'start', 'stop','RD'),
-                'formats': ('U4', np.int, np.int, np.float)}) #TODO: how to define U2 or U1 or U4? potential risk 
+                'formats': ('U4', np.int, np.int, np.float)}) 
+    #TODO: how to define U2 or U1 or U4? potential risk 
     return rd_matrix
+
+def loadNormRD(filename):
+    if os.path.splitext(filename)[-1][1:] == "gz":
+        f = gzip.open(filename,mode='rt')
+    elif os.path.splitext(filename)[-1][1:] == "bz2":
+        f = bz2.open(filename,mode='rt')
+    else:
+        f = open(filename)
+    chr_str = np.loadtxt(f, dtype=np.str, delimiter='\t', skiprows=0, usecols=(0,)) 
+    f.seek(0)
+    start = np.loadtxt(f, dtype=np.int, delimiter='\t', skiprows=0, usecols=(1,)) 
+    f.seek(0)
+    stop = np.loadtxt(f, dtype=np.int, delimiter='\t', skiprows=0, usecols=(2,)) 
+    f.seek(0)
+    GC = np.loadtxt(f, dtype=np.float, delimiter='\t', skiprows=0, usecols=(3,)) 
+    f.seek(0)
+    RD_raw = np.loadtxt(f, dtype=np.float, delimiter='\t', skiprows=0, usecols=(4,))
+    f.seek(0)
+    RD_norm = np.loadtxt(f, dtype=np.float, delimiter='\t', skiprows=0, usecols=(5,))
+    return {'chr': chr_str, 'start': start, 'stop': stop, 'GC': GC, 'RD_raw': RD_raw, 'RD_norm': RD_norm}
 
 def loadWindows(windows_filename):
     targets = np.loadtxt(windows_filename, delimiter='\t', skiprows=0,
@@ -82,6 +89,9 @@ def loadValuesByCol(filename, col):
         sys.e.xit(0)
     return np.loadtxt(open(filename), dtype=np.int, delimiter='\t', skiprows=1, usecols=(col,))
 
+def loadHeaderFromFirstRow(filename):
+    return np.loadtxt(filename, dtype=np.str, delimiter='\t', skiprows=0, max_rows=1) 
+    
 def loadRPKMMatrix(filename):
     f = open(filename)
     line = f.readline()
@@ -272,4 +282,20 @@ def fileToList(file_name):
         row = re.split(r'[;,\s]\s*', row)
         result_list.append(row[0])
     fp.close()
-    return result_list    
+    return result_list   
+
+def fileToListByTab(file_name):
+    result_list = []
+    extension = os.path.splitext(file_name)[-1][1:]
+    if extension == 'bz2':
+        fp = bz2.open(file_name, "rt")
+    else:
+        fp = open(file_name)
+    for row in fp:
+        row = row.strip()
+        row = row.replace("\"","")
+        row = re.split('\t',row)
+        #row = re.split(r'[;,\s]\s*', row)
+        result_list.append(row)
+    fp.close()
+    return result_list 

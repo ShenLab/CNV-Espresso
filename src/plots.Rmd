@@ -10,50 +10,77 @@ output: html_notebook
 ```{r}
 library(ggplot2)
 require(IDPmisc) 
+library(RColorBrewer)
 
-
+output_dir <- "/Users/rtan/terra_rt2776/CNV_Espresso/images/"
 gc_norm_file <- '/home/rt2776/cnv_espresso/data/SP0044942.cov.bed.gz.normalized_gc'
-gc_norm_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/data/SP0044942.cov.bed.gz.normalized_gc'
-gc_norm_df <- read.table(gc_norm_file)
+gc_norm_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/data/norm/SP0000027.cov.bed.norm'
+gc_norm_df <- read.table(gc_norm_file,col.names = c("CHR", "START", "END", "GC", "RD_raw", "RD_norm"))
 
-ls <- loess(gc_norm_df$V5~gc_norm_df$V4)
-pr.loess <- predict(ls)
-plot(gc_norm_df$V4,gc_norm_df$V5, ylim = c(0,300))
-e<-ggplot(gc_norm_df,aes(V4,V5))
-e+geom_point()
-e+geom_smooth(method=loess)
-
-ggplot(data = gc_norm_df) + geom_smooth(mapping = aes(x = V4, y = V6))
-
-gc_norm_plot <- gc_norm_df[which(gc_norm_df$V5 <=300),]
-iplot(gc_norm_plot$V4,gc_norm_plot$V5)
 
 # create a color palette to use in smoothed scatterplot
-library(RColorBrewer)
+#https://rstudio-pubs-static.s3.amazonaws.com/151690_ac65a180e03641e2adc3cb2ecf6306c3.html
 buylrd = c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF",
            "#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026") 
 myColRamp = colorRampPalette(c(buylrd))
-
 # smoothed scatterplot
-smoothScatter(x=gc_norm_plot$V4,gc_norm_plot$V5,
+smoothScatter(x=gc_norm_df$GC,gc_norm_df$RD_raw,
               colramp=myColRamp,
               main="Before GC normalization",
               xlab="GC",
               ylab="RD")
 ```
-
-
-#After GC normalization
 ```{r}
-plot(gc_norm_df$V4,gc_norm_df$V6, ylim = c(0,300))
-gc_norm_plot <- gc_norm_df[which(gc_norm_df$V6 <=300),]
-iplot(gc_norm_plot$V4,gc_norm_plot$V6)
-
-#https://rstudio-pubs-static.s3.amazonaws.com/151690_ac65a180e03641e2adc3cb2ecf6306c3.html
-smoothScatter(x=gc_norm_plot$V4,gc_norm_plot$V6,
+smoothScatter(x=gc_norm_df$GC,gc_norm_df$RD_norm,
               colramp=myColRamp,
               main="After GC normalization",
               xlab="GC",
-              ylab="RD")
+              ylab="Normalized RD")
+```
+
+#-----------------------------------------------------------------------------------------------
+#Illustrate CNVs
+```{r}
+library(ggplot2)
+library(gridExtra)
+target_sample <- 'SP0000027'
+ref_samples <- read.table('/Users/rtan/terra_rt2776/CNV_Espresso/data/ref/SP0000027.ref')
+target_sample_rd <- read.table(paste('/Users/rtan/terra_rt2776/CNV_Espresso/data/norm/',target_sample,'.cov.bed.norm',sep=''),
+                                header=F, col.names=c("CHR", "START", "END", "GC", "RD_raw", "RD_norm"))
+
+cnv_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/data/label/validated_xhmm_canoes_clamms_true_cnvs.txt'
+cnv_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/data/label/validated_xhmm_canoes_clamms_false_cnvs.txt'
+Cnvtab <- read.table(gzfile(cnv_file), header=F, col.names=c("CHR", "START", "END", "TYPE", "LENGTH", "SAMPLE", "LABEL", "TOOL"))
+```
+## take referencce samples
+```{r}
+Sig <- target_sample_rd
+```
+
+```{r}
+Cnvtab_selected <- Cnvtab[which(Cnvtab$SAMPLE==target_sample),]
+for(II in seq(1,nrow(Cnvtab_selected))) {
+    II <- 1
+    CNV<-Cnvtab_selected[II,]
+    #SigDF<-subset(Sig, CHR==CNV$CHR & END>CNV$START_EXT & START<CNV$END_EXT)
+    RD_df<-subset(Sig, CHR==CNV$CHR & END>CNV$START & START<CNV$END)
+
+    PLOT <- ggplot(RD_df, aes(x=(START+END)/2, y=(RD_norm))) +
+        geom_point(color="purple", shape=1, size=2) +
+        geom_line(aes( x=(START+END)/2, y=(RD_norm ), color= "red"))
+    
+    for(ref_sample in ref_samples[1:10,1]){
+        print(ref_sample)
+        ref_sample_rd <- read.table(paste('/Users/rtan/terra_rt2776/CNV_Espresso/data/norm/',ref_sample,'.cov.bed.norm',sep=''),
+                                header=F, col.names=c("CHR", "START", "END", "GC", "RD_raw", "RD_norm"))
+        REF_RD_df<-subset(ref_sample_rd, CHR==CNV$CHR & END>CNV$START & START<CNV$END)
+        PLOT <- PLOT + geom_point(color="black", shape=1, size=2, data=REF_RD_df) +
+        geom_line(color= "grey30",size=0.2,data=REF_RD_df)
+    }
+    PLOT
+    
+    ggsave(paste0(output_dir, "/", CNV$SAMPLE,"_",CNV$CHR,"_",CNV$START,"-",CNV$END,"_",CNV$LABEL,".png"), PLOT, width=7, height=4, unit="in")
+
+}
 ```
 

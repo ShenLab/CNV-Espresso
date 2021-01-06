@@ -1,0 +1,130 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+*Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+*Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+*Preview* button or press *Cmd+Shift+K* to preview the HTML file.
+
+```{r}
+library(ggplot2)
+require(IDPmisc) 
+
+
+gc_norm_file <- '/home/rt2776/cnv_espresso/data/SP0044942.cov.bed.gz.normalized_gc'
+gc_norm_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/data/SP0044942.cov.bed.gz.normalized_gc'
+gc_norm_df <- read.table(gc_norm_file)
+
+ls <- loess(gc_norm_df$V5~gc_norm_df$V4)
+pr.loess <- predict(ls)
+plot(gc_norm_df$V4,gc_norm_df$V5, ylim = c(0,300))
+e<-ggplot(gc_norm_df,aes(V4,V5))
+e+geom_point()
+e+geom_smooth(method=loess)
+
+ggplot(data = gc_norm_df) + geom_smooth(mapping = aes(x = V4, y = V6))
+
+gc_norm_plot <- gc_norm_df[which(gc_norm_df$V5 <=300),]
+iplot(gc_norm_plot$V4,gc_norm_plot$V5)
+
+# create a color palette to use in smoothed scatterplot
+library(RColorBrewer)
+buylrd = c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF",
+           "#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026") 
+myColRamp = colorRampPalette(c(buylrd))
+
+# smoothed scatterplot
+smoothScatter(x=gc_norm_plot$V4,gc_norm_plot$V5,
+              colramp=myColRamp,
+              main="Before GC normalization",
+              xlab="GC",
+              ylab="RD")
+```
+
+
+#After GC normalization
+```{r}
+plot(gc_norm_df$V4,gc_norm_df$V6, ylim = c(0,300))
+gc_norm_plot <- gc_norm_df[which(gc_norm_df$V6 <=300),]
+iplot(gc_norm_plot$V4,gc_norm_plot$V6)
+
+#https://rstudio-pubs-static.s3.amazonaws.com/151690_ac65a180e03641e2adc3cb2ecf6306c3.html
+smoothScatter(x=gc_norm_plot$V4,gc_norm_plot$V6,
+              colramp=myColRamp,
+              main="After GC normalization",
+              xlab="GC",
+              ylab="RD")
+```
+
+#-----------------------------------------------------------------------------------------------
+#Illustrate CNVs
+```{r}
+library(ggplot2)
+library(gridExtra)
+target_sample <- 'SP0000027'
+ref_samples <- read.table('/Users/rtan/terra_rt2776/CNV_Espresso/data/ref/SP0000027.ref')
+target_sample_rd <- read.table(paste('/Users/rtan/terra_rt2776/CNV_Espresso/data/norm/',target_sample,'.cov.bed.norm',sep=''),
+                                header=F, col.names=c("CHR", "START", "END", "GC", "RD_raw", "RD_norm", "RD_zscore"))
+
+cnv_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/data/validated_xhmm_canoes_clamms_true_cnvs.txt'
+cnv_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/data/validated_xhmm_canoes_clamms_false_cnvs.txt'
+Cnvtab <- read.table(gzfile(cnv_file), header=F, col.names=c("CHR", "START", "END", "TYPE", "LENGTH", "SAMPLE", "LABEL", "TOOL"))
+```
+## take referencce samples
+```{r}
+Sig<-read.table(gzfile(paste0(Wrkdir, "/norm.cov.bed.gz")),
+    header=F, col.names=c("CHR", "START", "END", "NORMDP", "MU", "SIGMA"))
+
+Sig <- target_sample_rd
+```
+
+```{r}
+Cnvtab_selected <- Cnvtab[which(Cnvtab$SAMPLE==target_sample),]
+for(II in seq(1,nrow(Cnvtab_selected))) {
+    II <- 1
+    CNV<-Cnvtab_selected[II,]
+    #SigDF<-subset(Sig, CHR==CNV$CHR & END>CNV$START_EXT & START<CNV$END_EXT)
+    RD_df<-subset(Sig, CHR==CNV$CHR & END>CNV$START & START<CNV$END)
+
+    PLOT <- ggplot(RD_df, aes(x=(START+END)/2, y=(RD_zscore))) +
+        geom_point(color="purple", shape=1, size=2) +
+        geom_line(aes( x=(START+END)/2, y=(RD_zscore ), color= "red"))
+    
+    for(ref_sample in ref_samples[,1]){
+        print(ref_sample)
+        ref_sample_rd <- read.table(paste('/Users/rtan/terra_rt2776/CNV_Espresso/data/norm/',ref_sample,'.cov.bed.norm',sep=''),
+                                header=F, col.names=c("CHR", "START", "END", "GC", "RD_raw", "RD_norm", "RD_zscore"))
+        REF_RD_df<-subset(ref_sample_rd, CHR==CNV$CHR & END>CNV$START & START<CNV$END)
+        PLOT <- PLOT + geom_point(color="black", shape=1, size=2, data=REF_RD_df) +
+        geom_line(color= "grey30",data=REF_RD_df)
+    }
+    PLOT
+    
+    
+    # Determine the limit
+    Y.MAX<-max(0.7, with(CNVDF, max(z))
+    Y.MIN<-min(-0.9, with(CNVDF, min((NORMDP-MU)/MU)))
+    
+    PLOT<-ggplot(SigDF, aes(x=(START+END)/2, y=(NORMDP-MU)/MU)) +
+        scale_y_continuous(limits=c(Y.MIN,Y.MAX)) +
+        geom_ribbon(aes(ymin = -2*SIGMA, ymax=2*SIGMA),fill="lightgrey") +
+        geom_ribbon(aes(ymin = -SIGMA, ymax=SIGMA),fill="grey") +
+        geom_hline(yintercept=-0.5, colour="grey40", linetype="dashed") +
+        geom_hline(yintercept=0.5,  colour="grey40", linetype="dashed") +
+        geom_point(color="purple", shape=1, size=2) +
+        geom_line(aes( x=(START+END)/2, y=(NORMDP-MU)/MU ), color= "grey60") +
+        geom_rug(sides="b")  +
+        theme_bw() + xlab(paste("Chromosome", CNV$CHR, "position")) + ylab("Norm depth relative to diploid") +
+        ggtitle(paste0(SampID, " CN=", CNV$CNTYPE))     
+    if(CNV$TYPE=="DEL" || CNV$TYPE=="DUP") {
+    PLOT <- PLOT + geom_point(color=ifelse(CNV$TYPE=="DEL","red", "green"), data=CNVDF, shape=19, size=2) +
+        geom_line(aes( x=(START+END)/2, y=(RD_zscore)) , color=ifelse(CNV$TYPE=="DEL","red", "green"), data=CNVDF)
+    }   
+    ggsave(paste0(Wrkdir, "/", CNV$CNVID, ".png"), PLOT, width=7, height=4, unit="in")
+}
+
+
+
+```
+
