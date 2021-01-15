@@ -13,6 +13,7 @@ import math
 import pysam
 import sys
 
+## Variables
 SAMPLE      = ['SAMPLE','sample_ID']
 CNV_CHR     = ['chr', 'CHR', 'CHROMOSOME', 'chromosome']
 CNV_START   = ['cnv_start', 'start', 'PRED_START', 'START']
@@ -21,40 +22,42 @@ CNV_TYPE    = ['cnv_type','type','TYPE','CNV', 'CNV_TYPE']
 NUM_TARGETS = ['NUM_TARGETS','targets']
 CNV_LABEL   = ['LABEL_VAL','label','LABEL']
 
-## Input
-cnv_file = sys.argv[1] 
-sge_task_id = int(sys.argv[2])
-
-# ## Data files and folders
-training_set_true_file  = '/home/rt2776/cnv_espresso/training_set/training_set_true.txt'
-training_set_false_file = '/home/rt2776/cnv_espresso/training_set/training_set_false.txt'
-RD_norm_dir             = '/home/rt2776/cnv_espresso/data/norm/'
-ref_samples_dir         = '/home/rt2776/cnv_espresso/reference_samples/'
-output_false_image_dir  = '/home/rt2776/cnv_espresso/images_cluster/false/'
-output_true_image_dir   = '/home/rt2776/cnv_espresso/images_cluster/true/'
-output_false_image_splits_dir  = output_false_image_dir+'splits/'
-output_true_image_splits_dir   = output_true_image_dir +'splits/'
-
 target_group = 3 # the number of targets per group
 color_del = (0,1,0) #green
 color_dup = (1,0,0) #red
 
-if not os.path.exists(output_false_image_dir):
-        os.makedirs(output_false_image_dir)
-if not os.path.exists(output_true_image_dir):
-        os.makedirs(output_true_image_dir)
-if not os.path.exists(output_false_image_splits_dir):
-        os.makedirs(output_false_image_splits_dir)
-if not os.path.exists(output_true_image_splits_dir):
-        os.makedirs(output_true_image_splits_dir)
+## Input
+RD_norm_dir     = sys.argv[1]
+ref_samples_dir = sys.argv[2]
+cnv_file        = sys.argv[3] 
+output_path     = sys.argv[4]
+sge_task_id     = int(sys.argv[5])
+
+## Data files and folders
+output_false_del_image_dir  = output_path + '/false_del/'
+output_false_del_image_splits_dir = output_path + '/false_del_splits/'
+
+output_false_dup_image_dir  = output_path + '/false_dup/'
+output_false_dup_image_splits_dir = output_path + '/false_dup_splits/'
+
+output_true_del_image_dir  = output_path + '/true_del/'
+output_true_del_image_splits_dir = output_path + '/true_del_splits/'
+
+output_true_dup_image_dir  = output_path + '/true_dup/'
+output_true_dup_image_splits_dir = output_path + '/true_dup_splits/'
+
+os.makedirs(output_false_del_image_dir, exist_ok=True)
+os.makedirs(output_false_dup_image_dir, exist_ok=True)
+os.makedirs(output_true_del_image_dir,  exist_ok=True)
+os.makedirs(output_true_dup_image_dir,  exist_ok=True)
+os.makedirs(output_false_del_image_splits_dir, exist_ok=True)
+os.makedirs(output_false_dup_image_splits_dir, exist_ok=True)
+os.makedirs(output_true_del_image_splits_dir , exist_ok=True)
+os.makedirs(output_true_dup_image_splits_dir , exist_ok=True)
 
 ## CNV info
-#cnv_data_df = pd.read_table(training_set_true_file, header=0)
 cnv_data_df = pd.read_table(cnv_file, header=0)
-#start_point = 799
-
-# ## Functions
-
+## Functions
 def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, target_group):
     # tabix RD file to fetch 
     RD_norm_file = RD_norm_dir+sampleID+'.cov.bed.norm.gz'
@@ -127,6 +130,7 @@ col_cnv_label = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_LABEL))
 col_cnv_canoes= cnv_data_header.index(fetch_colName(cnv_data_header,['CANOES','CANOES_RT']))
 col_cnv_xhmm  = cnv_data_header.index(fetch_colName(cnv_data_header,['XHMM','XHMM_RT']))
 col_cnv_clamms= cnv_data_header.index(fetch_colName(cnv_data_header,['CLAMMS','CLAMMS_RT']))
+col_cnv_numCarriers = cnv_data_header.index(fetch_colName(cnv_data_header,['Num_Carriers(inGivenCohort)']))
 
 #for index, row in cnv_data_df.iterrows(): 
 #     row = next(cnv_data_df.iterrows())[1]
@@ -147,19 +151,27 @@ cnv_canoes = str(row[col_cnv_canoes])
 cnv_xhmm   = str(row[col_cnv_xhmm])
 cnv_clamms = str(row[col_cnv_clamms])
 case_sample_color = color_del if cnv_type == 'DEL' else color_dup
+cnv_num_carriers  = str(row[col_cnv_numCarriers])
 
-if cnv_label == 0:
-    output_image_dir = output_false_image_dir
-    output_image_splits_dir = output_false_image_splits_dir
-elif cnv_label == 1: 
-    output_image_dir = output_true_image_dir
-    output_image_splits_dir = output_true_image_splits_dir
+if cnv_type == 'DEL' and cnv_label == 0:
+    output_image_dir = output_false_del_image_dir 
+    output_image_splits_dir = output_false_del_image_splits_dir
+elif cnv_type == 'DEL' and cnv_label == 1:
+    output_image_dir = output_true_del_image_dir
+    output_image_splits_dir = output_true_del_image_splits_dir
+elif cnv_type == 'DUP' and cnv_label == 0:
+    output_image_dir = output_false_dup_image_dir
+    output_image_splits_dir = output_false_dup_image_splits_dir
+elif cnv_type == 'DUP' and cnv_label == 1: 
+    output_image_dir = output_true_dup_image_dir
+    output_image_splits_dir = output_true_dup_image_splits_dir
 else:
     print("cnv_label error?", cnv_label)
     pdb.set_trace()
     
 cnv_label_str = "True" if cnv_label == 1 else "False"
-print("[%d|%d] Illustrating: %s %s:%d-%d %s #targets:%d Label:%s"%           (len(cnv_data_df), index+1, sampleID, cnv_chr, cnv_start, cnv_end, cnv_type, cnv_num_targets, cnv_label_str))
+print("[%d|%d] Illustrating: %s %s:%d-%d %s #targets:%d Label:%s"% \
+       (len(cnv_data_df), index+1, sampleID, cnv_chr, cnv_start, cnv_end, cnv_type, cnv_num_targets, cnv_label_str))
 
 ## Import RD data info
 print("  --Step1. Fetching RD data for case sample ...")
@@ -181,14 +193,22 @@ reference_RD_df = fetchRefRDdata_byTabix(ref_samples_file, cnv_chr, cnv_start, c
     
 ## plot whole cnv
 print("  --Step3. Illustrating an image for the whole CNV ...")
-title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type +" "+ str((cnv_end-cnv_start)/1000) + 'kb'+                 " #targets:"+str(cnv_num_targets) + " #wins:" + str(len(RD_cnv_region)) + "\nCANOES:"+cnv_canoes + " XHMM:"+cnv_xhmm + " CLAMMS:"+cnv_clamms
-image_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_type+ "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region)) +"wins.png"
+title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type + \
+             " "+ str((cnv_end-cnv_start)/1000) + 'kb'+ " #targets:"+str(cnv_num_targets) + \
+             " #wins:" + str(len(RD_cnv_region)) + "\nCANOES:"+cnv_canoes + " XHMM:"+ \
+             cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:"+cnv_num_carriers
+
+image_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end)+ \
+             "_"+cnv_type+ "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region)) +"wins.png"
+
 fig = plt.figure(dpi=150,figsize=(10, 7)) 
 ax_rd = fig.subplots(nrows=1, ncols=1)
+
 ### plot reference samples
 for sample_reader in reference_RD_df["sample"].unique():
             ref_sample_df = reference_RD_df[reference_RD_df["sample"]==sample_reader]
             ax_rd.plot((ref_sample_df["start"]+ref_sample_df["end"])/2, ref_sample_df["RD_norm"], color='grey', marker='.', linewidth=0.2)
+
 ### plot case sample
 ax_rd.plot((RD_cnv_region["start"]+RD_cnv_region["end"])/2, RD_cnv_region["RD_norm"],color=case_sample_color , marker='o', linewidth=2)
 ax_rd.set_title(title_info)
@@ -216,3 +236,5 @@ for group_id in np.unique(RD_cnv_region['target_group']):
         ax_rd.set_title(title_split_info)
         plt.savefig(output_image_splits_dir+image_split_file)
         plt.close()
+print("  --[Done]. Images have output to %s and %s."%(output_image_dir+image_file, output_image_splits_dir))
+
