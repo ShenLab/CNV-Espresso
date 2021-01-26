@@ -38,8 +38,8 @@ canoes_cov_spark10 <- covariance
 rm(covariance)
 
 # training set info
-training_set_true_df <- read.table('/Users/rtan/terra_rt2776/CNV_Espresso/training_set/training_set_true.txt',header = TRUE)
-training_set_false_df <- read.table('/Users/rtan/terra_rt2776/CNV_Espresso/training_set/training_set_false.txt',header = TRUE)
+training_set_true_df <- read.table('/Users/rtan/terra_rt2776/CNV_Espresso/training_set/training_set_true_rare.txt',header = TRUE)
+training_set_false_df <- read.table('/Users/rtan/terra_rt2776/CNV_Espresso/training_set/training_set_false_rare.txt',header = TRUE)
 traning_set_true_sample <- unique(training_set_true_df$SAMPLE)
 traning_set_false_sample <- unique(training_set_false_df$SAMPLE)
 head(traning_set_true_sample)
