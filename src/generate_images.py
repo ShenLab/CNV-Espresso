@@ -33,7 +33,7 @@ cnv_file        = sys.argv[3]
 output_path     = sys.argv[4]
 sge_task_id     = int(sys.argv[5])
 
-## Data files and folders
+## Output files and folders
 output_false_del_image_dir  = output_path + '/false_del/'
 output_false_del_image_splits_dir = output_path + '/false_del_splits/'
 
