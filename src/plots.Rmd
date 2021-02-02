@@ -84,3 +84,89 @@ for(II in seq(1,nrow(Cnvtab_selected))) {
 }
 ```
 
+## Illustrating results
+```{r}
+library(ggplot2)
+```
+
+```{r}
+rare_del_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/images_rare/data_backup/rare_del_entire_cnv_info.csv'
+rare_del_df <- read.csv(rare_del_file,header = TRUE)
+```
+
+```{r}
+rare_del_df
+```
+
+```{r}
+d<-ggplot(rare_del_df,aes(Num_Targets_Wins))
+d+geom_bar(fill="darkgreen")+
+theme(text = element_text(size=18), axis.text.x = element_text(angle=45, hjust=1))
+        
+```
+
+```{r}
+d<-ggplot(rare_del_df,aes(SIZE_LABEL))
+d+geom_bar(fill="darkgreen",color="black")+
+theme(text = element_text(size=18),
+        axis.text.x = element_text(angle=45, hjust=1))
+```
+
+```{r}
+pred_rare_del_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/output/del_test_predict_info.csv'
+pred_rare_del_df <- read.csv(pred_rare_del_file,header = TRUE)
+pred_rare_del_df
+```
+```{r}
+d<-ggplot(pred_rare_del_df,aes(SIZE_LABEL, fill=Pred_status))
+d+geom_bar(color="black")+
+scale_fill_manual(values=c('#999999','#E69F00'))+
+geom_text(stat='count',aes(label=..count..), color="white", size=3.5,position=position_stack(0.5))+
+theme(text = element_text(size=18),
+        axis.text.x = element_text(angle=45, hjust=1))
+```
+
+```{r}
+pred_rare_del_df$WIN_SIZE_LABEL <- factor(pred_rare_del_df$WIN_SIZE_LABEL,level=c(2,3,4,5,6,7,8,9,10,'11 to 20','21 to 30','31 to 50','51 to 100'))
+d<-ggplot(pred_rare_del_df,aes(WIN_SIZE_LABEL, fill=Pred_status))
+d+geom_bar(color="black")+
+scale_fill_manual(values=c('#999999','#E69F00'))+
+geom_text(stat='count',aes(label=..count..), color="white", size=3.5,position=position_stack(0.5))+
+theme(text = element_text(size=18),
+        axis.text.x = element_text(angle=45, hjust=1))
+```
+
+```{r}
+rare_dup_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/images_rare/data_backup/rare_entire_dup_info.csv'
+rare_dup_df <- read.csv(rare_dup_file,header = TRUE)
+```
+```{r}
+d<-ggplot(rare_dup_df,aes(SIZE_LABEL))
+d+geom_bar(fill="darkred",color="black")+
+theme(text = element_text(size=18),
+        axis.text.x = element_text(angle=45, hjust=1))
+```
+```{r}
+pred_rare_dup_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/output/rare_entire_dup_test_predict_info.csv'
+pred_rare_dup_df <- read.csv(pred_rare_dup_file,header = TRUE)
+pred_rare_dup_df
+```
+
+```{r}
+d<-ggplot(pred_rare_dup_df,aes(SIZE_LABEL, fill=Pred_status))
+d+geom_bar(color="black")+
+scale_fill_manual(values=c('#999999','#E69F00'))+
+geom_text(stat='count',aes(label=..count..), color="white", size=3.5,position=position_stack(0.5))+
+theme(text = element_text(size=18),
+        axis.text.x = element_text(angle=45, hjust=1))
+```
+```{r}
+pred_rare_dup_df$WIN_SIZE_LABEL <- factor(pred_rare_dup_df$WIN_SIZE_LABEL,level=c(2,3,4,5,6,7,8,9,10,'11 to 20','21 to 30','31 to 50','51 to 100'))
+d<-ggplot(pred_rare_dup_df,aes(WIN_SIZE_LABEL, fill=Pred_status))
+d+geom_bar(color="black")+
+scale_fill_manual(values=c('#999999','#E69F00'))+
+geom_text(stat='count',aes(label=..count..), color="white", size=3.5,position=position_stack(0.5))+
+theme(text = element_text(size=18),
+        axis.text.x = element_text(angle=45, hjust=1))
+```
+
