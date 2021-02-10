@@ -12,12 +12,13 @@ import bz2
 import math
 import pysam
 import sys
+import glob
 
 ## Variables
-SAMPLE      = ['SAMPLE','sample_ID']
-CNV_CHR     = ['chr', 'CHR', 'CHROMOSOME', 'chromosome']
-CNV_START   = ['cnv_start', 'start', 'PRED_START', 'START']
-CNV_END     = ['cnv_stop', 'stop', 'PRED_END', 'END']
+SAMPLE      = ['SAMPLE','sample_ID','ID']
+CNV_CHR     = ['chr', 'CHR', 'CHROMOSOME', 'chromosome','Chr']
+CNV_START   = ['cnv_start', 'start', 'PRED_START', 'START','Start']
+CNV_END     = ['cnv_stop', 'stop', 'PRED_END', 'END','End']
 CNV_TYPE    = ['cnv_type','type','TYPE','CNV', 'CNV_TYPE']
 NUM_TARGETS = ['NUM_TARGETS','targets']
 CNV_LABEL   = ['LABEL_VAL','label','LABEL']
@@ -31,7 +32,10 @@ RD_norm_dir     = sys.argv[1]
 ref_samples_dir = sys.argv[2]
 cnv_file        = sys.argv[3] 
 output_path     = sys.argv[4]
-sge_task_id     = int(sys.argv[5])
+try:
+    sge_task_id = int(sys.argv[5])
+except:
+    sge_task_id = 'all'
 
 ## Output files and folders
 output_false_del_image_dir  = output_path + '/false_del/'
@@ -60,7 +64,8 @@ cnv_data_df = pd.read_table(cnv_file, header=0)
 ## Functions
 def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, target_group):
     # tabix RD file to fetch 
-    RD_norm_file = RD_norm_dir+sampleID+'.cov.bed.norm.gz'
+    #RD_norm_file = RD_norm_dir+sampleID+'.cov.bed.norm.gz'
+    RD_norm_file = fetch_relative_file_path(RD_norm_dir, sampleID,'gz')
     if not os.path.exists(RD_norm_dir):
         print('No tabular file: %s'%RD_norm_file)
         return ["No tabular file"]
@@ -84,7 +89,10 @@ def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, targ
     return RD_fetched_df
 
 def loadRefSamplesID(ref_samples_file):
-    ref_samplesID_df = pd.read_table(ref_samples_file,low_memory=False,header=None, sep=' ',                              names=['sampleID', 'r2'])
+    ref_samplesID_df = pd.read_table(ref_samples_file,
+                                        #low_memory=False,
+                                        header=None, sep=' |\t', engine='python',
+                                        names=['sampleID', 'r2'])
     return ref_samplesID_df
 
 def fetchRefRDdata_byTabix(ref_samples_file, cnv_chr, cnv_start, cnv_end, target_group):
@@ -116,6 +124,23 @@ def fetch_colName(keyWord_list, colName_list):
             keyWord = None
     return keyWord
 
+def fetch_relative_file_path(RD_norm_dir, sampleID, suffix):
+    sample_rd_file = None
+    sample_rd_likely_file = RD_norm_dir+sampleID+'.*.'+suffix
+    sample_rd_file_list = glob.glob(sample_rd_likely_file)
+
+    if len(sample_rd_file_list) == 1:
+        sample_rd_file = sample_rd_file_list[0]
+    else:
+        print("   -[Error]: there are multiple files for %s "%(sample_rd_likely_file))
+        #TODO: support manually selection of one file
+        pdb.set_trace()
+
+    if not os.path.exists(sample_rd_file):
+        print("    -[Error]: error in normalized RD file of %s "%(sample_rd_file))
+        #TODO: write to log file
+        exit(0)
+    return sample_rd_file
 
 # ## Processing
 ## Parse header
@@ -125,12 +150,15 @@ col_cnv_chr   = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_CHR))
 col_cnv_start = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_START))
 col_cnv_end   = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_END))
 col_cnv_type  = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_TYPE))
-col_cnv_num_targets = cnv_data_header.index(fetch_colName(cnv_data_header,NUM_TARGETS))
-col_cnv_label = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_LABEL))
-col_cnv_canoes= cnv_data_header.index(fetch_colName(cnv_data_header,['CANOES','CANOES_RT']))
-col_cnv_xhmm  = cnv_data_header.index(fetch_colName(cnv_data_header,['XHMM','XHMM_RT']))
-col_cnv_clamms= cnv_data_header.index(fetch_colName(cnv_data_header,['CLAMMS','CLAMMS_RT']))
-col_cnv_numCarriers = cnv_data_header.index(fetch_colName(cnv_data_header,['Num_Carriers(inGivenCohort)']))
+try:
+    col_cnv_num_targets = cnv_data_header.index(fetch_colName(cnv_data_header,NUM_TARGETS))
+    col_cnv_label = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_LABEL))
+    col_cnv_canoes= cnv_data_header.index(fetch_colName(cnv_data_header,['CANOES','CANOES_RT']))
+    col_cnv_xhmm  = cnv_data_header.index(fetch_colName(cnv_data_header,['XHMM','XHMM_RT']))
+    col_cnv_clamms= cnv_data_header.index(fetch_colName(cnv_data_header,['CLAMMS','CLAMMS_RT']))
+    col_cnv_numCarriers = cnv_data_header.index(fetch_colName(cnv_data_header,['Num_Carriers(inGivenCohort)']))
+except:
+    pass
 
 #for index, row in cnv_data_df.iterrows(): 
 #     row = next(cnv_data_df.iterrows())[1]
@@ -145,46 +173,63 @@ cnv_chr   = row[col_cnv_chr]
 cnv_start = np.int(row[col_cnv_start])
 cnv_end   = np.int(row[col_cnv_end])
 cnv_type  = row[col_cnv_type]
-cnv_num_targets = row[col_cnv_num_targets]
-cnv_label  = row[col_cnv_label]
-cnv_canoes = str(row[col_cnv_canoes])
-cnv_xhmm   = str(row[col_cnv_xhmm])
-cnv_clamms = str(row[col_cnv_clamms])
+
+if cnv_type == 1:
+    cnv_type = "DEL"
+elif cnv_type == 3:
+    cnv_type = "DUP"
+else:
+    print("cnv_type error?", cnv_type)
+    pdb.set_trace()
+
 case_sample_color = color_del if cnv_type == 'DEL' else color_dup
-cnv_num_carriers  = str(row[col_cnv_numCarriers])
+try:
+    cnv_num_targets = row[col_cnv_num_targets]
+    cnv_label  = row[col_cnv_label]
+    cnv_canoes = str(row[col_cnv_canoes])
+    cnv_xhmm   = str(row[col_cnv_xhmm])
+    cnv_clamms = str(row[col_cnv_clamms])
+    cnv_num_carriers  = str(row[col_cnv_numCarriers])
+except:
+    cnv_num_targets = 'NA'
+    cnv_label = 'NA'
+    cnv_canoes = 'NA'
+    cnv_xhmm = 'NA'
+    cnv_clamms = 'NA'
+    cnv_num_carriers = 'NA' 
 
 if cnv_type == 'DEL' and cnv_label == 0:
     output_image_dir = output_false_del_image_dir 
     output_image_splits_dir = output_false_del_image_splits_dir
-elif cnv_type == 'DEL' and cnv_label == 1:
+elif cnv_type == 'DEL' and (cnv_label == 1 or cnv_label == 'NA'):
     output_image_dir = output_true_del_image_dir
     output_image_splits_dir = output_true_del_image_splits_dir
 elif cnv_type == 'DUP' and cnv_label == 0:
     output_image_dir = output_false_dup_image_dir
     output_image_splits_dir = output_false_dup_image_splits_dir
-elif cnv_type == 'DUP' and cnv_label == 1: 
+elif cnv_type == 'DUP' and (cnv_label == 1 or cnv_label == 'NA'): 
     output_image_dir = output_true_dup_image_dir
     output_image_splits_dir = output_true_dup_image_splits_dir
 else:
     print("cnv_label error?", cnv_label)
+    print("cnv_type error?", cnv_type)
     pdb.set_trace()
     
-cnv_label_str = "True" if cnv_label == 1 else "False"
-print("[%d|%d] Illustrating: %s %s:%d-%d %s #targets:%d Label:%s"% \
-       (len(cnv_data_df), index+1, sampleID, cnv_chr, cnv_start, cnv_end, cnv_type, cnv_num_targets, cnv_label_str))
+if cnv_label == 'NA':
+    cnv_label_str = 'NA'
+else:    
+    cnv_label_str = "True" if cnv_label == 1 else "False"
+print("[%d|%d] Illustrating: %s %s:%d-%d %s #targets:%s Label:%s"% \
+       (len(cnv_data_df), index+1, sampleID, cnv_chr, cnv_start, cnv_end, cnv_type, str(cnv_num_targets), cnv_label_str))
 
 ## Import RD data info
 print("  --Step1. Fetching RD data for case sample ...")
-sample_rd_file = RD_norm_dir+sampleID+'.cov.bed.norm.gz'
-if not os.path.exists(sample_rd_file):
-    print("    -[Error]: error in normalized RD file of %s "%(sample_rd_file))
-    #TODO: write to log file
-    exit(0)
 RD_cnv_region = fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, target_group)
 
 ## Fetch Read depth data for reference samples in terms of CNV boundary       
 print("  --Step2. Fetching RD data for reference samples ...")
-ref_samples_file = ref_samples_dir+sampleID+'.ref.samples.txt.bz2'
+#ref_samples_file = ref_samples_dir+sampleID+'.ref.samples.txt.bz2'
+ref_samples_file = fetch_relative_file_path(ref_samples_dir, sampleID,'txt')
 if not os.path.exists(ref_samples_file):
     print("    -[Error]: error in reference samples related file for %s in %s"%(sampleID, ref_samples_dir))
     #TODO: write to log file
@@ -210,7 +255,8 @@ ax_rd = fig.subplots(nrows=1, ncols=1)
 ### plot reference samples
 for sample_reader in reference_RD_df["sample"].unique():
             ref_sample_df = reference_RD_df[reference_RD_df["sample"]==sample_reader]
-            ax_rd.plot((ref_sample_df["start"]+ref_sample_df["end"])/2, ref_sample_df["RD_norm"], color='grey', marker='.', linewidth=0.2)
+            ax_rd.plot((ref_sample_df["start"]+ref_sample_df["end"])/2, ref_sample_df["RD_norm"],
+                        color='grey', marker='.', linewidth=0.2)
 
 ### plot case sample
 ax_rd.plot((RD_cnv_region["start"]+RD_cnv_region["end"])/2, RD_cnv_region["RD_norm"],color=case_sample_color , marker='o', linewidth=2)
@@ -241,7 +287,8 @@ for group_id in np.unique(RD_cnv_region['target_group']):
             ref_sample_df = reference_RD_df_split[reference_RD_df_split["sample"]==sample_reader]
             ax_rd.plot((ref_sample_df["start"]+ref_sample_df["end"])/2, ref_sample_df["RD_norm"], color = 'grey', marker='.', linewidth=0.2)
         # plot case sample
-        ax_rd.plot((RD_cnv_region_split["start"]+RD_cnv_region_split["end"])/2, RD_cnv_region_split["RD_norm"], color=case_sample_color, marker='o', linewidth=2)
+        ax_rd.plot((RD_cnv_region_split["start"]+RD_cnv_region_split["end"])/2, RD_cnv_region_split["RD_norm"],
+                color=case_sample_color, marker='o', linewidth=2)
         ax_rd.set_title(title_split_info)
         plt.savefig(output_image_splits_dir+image_split_file)
         plt.close()
