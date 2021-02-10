@@ -23,9 +23,9 @@ NUM_TARGETS = ['NUM_TARGETS','targets']
 CNV_LABEL   = ['LABEL_VAL','label','LABEL']
 
 target_group = 3 # the number of targets per group
-color_del = (0,1,0) #green
-color_dup = (1,0,0) #red
-
+#color_del = (0,1,0) #green
+#color_dup = (1,0,0) #red
+color_del, color_dup = (0,0,1), (0,0,1) #blue for three classes labels
 ## Input
 RD_norm_dir     = sys.argv[1]
 ref_samples_dir = sys.argv[2]
@@ -196,10 +196,13 @@ print("  --Step3. Illustrating an image for the whole CNV ...")
 title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type + \
              " "+ str((cnv_end-cnv_start)/1000) + 'kb'+ " #targets:"+str(cnv_num_targets) + \
              " #wins:" + str(len(RD_cnv_region)) + "\nCANOES:"+cnv_canoes + " XHMM:"+ \
-             cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:"+cnv_num_carriers
+             cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:"+cnv_num_carriers + \
+             " Label:"+cnv_label_str+"_"+cnv_type
 
-image_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end)+ \
-             "_"+cnv_type+ "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region)) +"wins.png"
+
+image_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
+             "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region))+"wins_"+ \
+             cnv_label_str+"_"+cnv_type+".png"
 
 fig = plt.figure(dpi=150,figsize=(10, 7)) 
 ax_rd = fig.subplots(nrows=1, ncols=1)
@@ -220,8 +223,14 @@ print("  --Step4. Illustrating images for the CNV splited by each %d windows ...
 for group_id in np.unique(RD_cnv_region['target_group']):
     ## if targets equal to required number (3 by default)
     if len(RD_cnv_region[RD_cnv_region['target_group']==group_id]) == target_group:
-        title_split_info = title_info +" Group:"+ str(int(len(RD_cnv_region)/target_group))+"-"+ str(group_id)
-        image_split_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_type+ "_"+str(cnv_num_targets)+                                 "tgs_"+str(len(RD_cnv_region)) +"wins_splits"+str(int(len(RD_cnv_region)/target_group))+"_"+ str(group_id) +".png"
+        title_split_info = title_info +" Group:"+ str(int(len(RD_cnv_region)/target_group))+ \
+                           "-"+ str(group_id)
+                           
+        image_split_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+ \
+                str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_label_str+"_"+cnv_type+ \
+                "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region))+ \
+                "wins_splits"+str(int(len(RD_cnv_region)/target_group))+"_"+ str(group_id) +".png"
+
         fig = plt.figure(dpi=150,figsize=(7, 7)) 
         ax_rd = fig.subplots(nrows=1, ncols=1)
 
@@ -237,4 +246,3 @@ for group_id in np.unique(RD_cnv_region['target_group']):
         plt.savefig(output_image_splits_dir+image_split_file)
         plt.close()
 print("  --[Done]. Images have output to %s and %s."%(output_image_dir+image_file, output_image_splits_dir))
-
