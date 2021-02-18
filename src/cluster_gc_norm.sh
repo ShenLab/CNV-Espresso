@@ -20,7 +20,9 @@ then
 fi
 
 RD_file=$(head -n $ID $INPUT_RD_FILE_LIST_W_PATH | tail -n 1 | awk '{print $1}')
-file_name=$(basename $RD_file .gz)
+file_name=${RD_file%.*}
+file_name=$(basename $file_name)
+#file_name=$(basename $RD_file .bz2)
 
 echo ${RD_file}
 python /home/rt2776/cnv_espresso/src/cnv_espresso.py normalization \

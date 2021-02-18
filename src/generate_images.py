@@ -15,6 +15,7 @@ import sys
 import glob
 
 ## Variables
+## TODO: store in file or statistic varibles, which can share with multiple scripts
 SAMPLE      = ['SAMPLE','sample_ID','ID']
 CNV_CHR     = ['chr', 'CHR', 'CHROMOSOME', 'chromosome','Chr']
 CNV_START   = ['cnv_start', 'start', 'PRED_START', 'START','Start']
@@ -38,29 +39,37 @@ except:
     sge_task_id = 'all'
 
 ## Output files and folders
-output_false_del_image_dir  = output_path + '/false_del/'
-output_false_del_image_splits_dir = output_path + '/false_del_splits/'
 
-output_false_dup_image_dir  = output_path + '/false_dup/'
-output_false_dup_image_splits_dir = output_path + '/false_dup_splits/'
+#output_false_del_image_dir  = output_path + '/false_del/'
+#output_false_del_image_splits_dir = output_path + '/false_del_splits/'
+#
+#output_false_dup_image_dir  = output_path + '/false_dup/'
+#output_false_dup_image_splits_dir = output_path + '/false_dup_splits/'
+#
+#output_true_del_image_dir  = output_path + '/true_del/'
+#output_true_del_image_splits_dir = output_path + '/true_del_splits/'
+#
+#output_true_dup_image_dir  = output_path + '/true_dup/'
+#output_true_dup_image_splits_dir = output_path + '/true_dup_splits/'
+#
+#os.makedirs(output_false_del_image_dir, exist_ok=True)
+#os.makedirs(output_false_dup_image_dir, exist_ok=True)
+#os.makedirs(output_true_del_image_dir,  exist_ok=True)
+#os.makedirs(output_true_dup_image_dir,  exist_ok=True)
+#os.makedirs(output_false_del_image_splits_dir, exist_ok=True)
+#os.makedirs(output_false_dup_image_splits_dir, exist_ok=True)
+#os.makedirs(output_true_del_image_splits_dir , exist_ok=True)
+#os.makedirs(output_true_dup_image_splits_dir , exist_ok=True)
+#
+output_EntireCNV_image_dir  = output_path + '/entire_cnvs/'
+output_SplitCNV_image_dir   = output_path + '/split_cnvs/'
+os.makedirs(output_EntireCNV_image_dir,  exist_ok=True)
+os.makedirs(output_SplitCNV_image_dir,   exist_ok=True)
 
-output_true_del_image_dir  = output_path + '/true_del/'
-output_true_del_image_splits_dir = output_path + '/true_del_splits/'
-
-output_true_dup_image_dir  = output_path + '/true_dup/'
-output_true_dup_image_splits_dir = output_path + '/true_dup_splits/'
-
-os.makedirs(output_false_del_image_dir, exist_ok=True)
-os.makedirs(output_false_dup_image_dir, exist_ok=True)
-os.makedirs(output_true_del_image_dir,  exist_ok=True)
-os.makedirs(output_true_dup_image_dir,  exist_ok=True)
-os.makedirs(output_false_del_image_splits_dir, exist_ok=True)
-os.makedirs(output_false_dup_image_splits_dir, exist_ok=True)
-os.makedirs(output_true_del_image_splits_dir , exist_ok=True)
-os.makedirs(output_true_dup_image_splits_dir , exist_ok=True)
 
 ## CNV info
 cnv_data_df = pd.read_table(cnv_file, header=0)
+
 ## Functions
 def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, target_group):
     # tabix RD file to fetch 
@@ -179,8 +188,7 @@ if cnv_type == 1:
 elif cnv_type == 3:
     cnv_type = "DUP"
 else:
-    print("cnv_type error?", cnv_type)
-    pdb.set_trace()
+    pass
 
 case_sample_color = color_del if cnv_type == 'DEL' else color_dup
 try:
@@ -198,27 +206,28 @@ except:
     cnv_clamms = 'NA'
     cnv_num_carriers = 'NA' 
 
-if cnv_type == 'DEL' and cnv_label == 0:
-    output_image_dir = output_false_del_image_dir 
-    output_image_splits_dir = output_false_del_image_splits_dir
-elif cnv_type == 'DEL' and (cnv_label == 1 or cnv_label == 'NA'):
-    output_image_dir = output_true_del_image_dir
-    output_image_splits_dir = output_true_del_image_splits_dir
-elif cnv_type == 'DUP' and cnv_label == 0:
-    output_image_dir = output_false_dup_image_dir
-    output_image_splits_dir = output_false_dup_image_splits_dir
-elif cnv_type == 'DUP' and (cnv_label == 1 or cnv_label == 'NA'): 
-    output_image_dir = output_true_dup_image_dir
-    output_image_splits_dir = output_true_dup_image_splits_dir
-else:
-    print("cnv_label error?", cnv_label)
-    print("cnv_type error?", cnv_type)
-    pdb.set_trace()
+#if cnv_type == 'DEL' and cnv_label == 0:
+#    output_image_dir = output_false_del_image_dir 
+#    output_image_splits_dir = output_false_del_image_splits_dir
+#elif cnv_type == 'DEL' and (cnv_label == 1 or cnv_label == 'NA'):
+#    output_image_dir = output_true_del_image_dir
+#    output_image_splits_dir = output_true_del_image_splits_dir
+#elif cnv_type == 'DUP' and cnv_label == 0:
+#    output_image_dir = output_false_dup_image_dir
+#    output_image_splits_dir = output_false_dup_image_splits_dir
+#elif cnv_type == 'DUP' and (cnv_label == 1 or cnv_label == 'NA'): 
+#    output_image_dir = output_true_dup_image_dir
+#    output_image_splits_dir = output_true_dup_image_splits_dir
+#else:
+#    print("cnv_label error?", cnv_label)
+#    print("cnv_type error?", cnv_type)
+#    pdb.set_trace()
     
 if cnv_label == 'NA':
     cnv_label_str = 'NA'
 else:    
     cnv_label_str = "True" if cnv_label == 1 else "False"
+
 print("[%d|%d] Illustrating: %s %s:%d-%d %s #targets:%s Label:%s"% \
        (len(cnv_data_df), index+1, sampleID, cnv_chr, cnv_start, cnv_end, cnv_type, str(cnv_num_targets), cnv_label_str))
 
@@ -244,7 +253,6 @@ title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+c
              cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:"+cnv_num_carriers + \
              " Label:"+cnv_label_str+"_"+cnv_type
 
-
 image_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
              "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region))+"wins_"+ \
              cnv_label_str+"_"+cnv_type+".png"
@@ -261,11 +269,12 @@ for sample_reader in reference_RD_df["sample"].unique():
 ### plot case sample
 ax_rd.plot((RD_cnv_region["start"]+RD_cnv_region["end"])/2, RD_cnv_region["RD_norm"],color=case_sample_color , marker='o', linewidth=2)
 ax_rd.set_title(title_info)
-plt.savefig(output_image_dir+image_file)
+plt.savefig(output_EntireCNV_image_dir+image_file)
 plt.close() 
 
 ## plot split CNV for each three targets
 print("  --Step4. Illustrating images for the CNV splited by each %d windows ..."%target_group)
+split_cnv_path_list = []
 for group_id in np.unique(RD_cnv_region['target_group']):
     ## if targets equal to required number (3 by default)
     if len(RD_cnv_region[RD_cnv_region['target_group']==group_id]) == target_group:
@@ -290,6 +299,10 @@ for group_id in np.unique(RD_cnv_region['target_group']):
         ax_rd.plot((RD_cnv_region_split["start"]+RD_cnv_region_split["end"])/2, RD_cnv_region_split["RD_norm"],
                 color=case_sample_color, marker='o', linewidth=2)
         ax_rd.set_title(title_split_info)
-        plt.savefig(output_image_splits_dir+image_split_file)
+        plt.savefig(output_SplitCNV_image_dir+image_split_file)
         plt.close()
-print("  --[Done]. Images have output to %s and %s."%(output_image_dir+image_file, output_image_splits_dir))
+        split_cnv_path_list.append(output_SplitCNV_image_dir+image_split_file)
+print("  --[Done]. Images have output to %s and %s."%(output_SplitCNV_image_dir+image_file, output_SplitCNV_image_dir))
+
+### address the image path to cnv_info file
+cnv_data_df.loc[index, 'split_cnv_path'] = '\n'.join([each_path for each_path in split_cnv_path_list])
