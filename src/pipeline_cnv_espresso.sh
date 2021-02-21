@@ -193,7 +193,7 @@ python /home/rt2776/cnv_espresso/src/cnv_espresso.py normalization \
 windows_file='/home/rt2776/cnv_espresso/predict_pcgc/pcgc_NimbleGenV2_windows.bed.gz'
 input_RD_list='/home/rt2776/cnv_espresso/predict_pcgc/pcgc_NimbleGenV2_sample.list'
 output_dir='/home/rt2776/cnv_espresso/predict_pcgc/norm/'
-qsub -t 1-5 /home/rt2776/cnv_espresso/src/cluster_gc_norm.sh \
+qsub -t 1-5401 /home/rt2776/cnv_espresso/src/cluster_gc_norm.sh \
     ${windows_file} ${input_RD_list} ${output_dir}
 
 ## draw images
@@ -203,7 +203,7 @@ ref_samples_dir='/home/rt2776/cnv_espresso/predict_pcgc/ref_samples/'
 python /home/rt2776/cnv_espresso/src/generate_images.py \
     ${RD_norm_dir} ${ref_samples_dir} \
     /home/rt2776/cnv_espresso/predict_pcgc/pcgc_NimbleGenV2_data.txt \
-    /home/rt2776/cnv_espresso/predict_pcgc/images/ 1
+    /home/rt2776/cnv_espresso/predict_pcgc/images_new/ 7
 
 RD_norm_dir='/home/rt2776/cnv_espresso/predict_pcgc/norm/'
 ref_samples_dir='/home/rt2776/cnv_espresso/predict_pcgc/ref_samples/'
