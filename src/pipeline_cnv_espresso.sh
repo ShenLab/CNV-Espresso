@@ -210,11 +210,11 @@ ref_samples_dir='/home/rt2776/cnv_espresso/predict_pcgc/ref_samples/'
 qsub -t 1-52 /home/rt2776/cnv_espresso/src/cluster_generate_images.sh \
     ${RD_norm_dir} ${ref_samples_dir} \
     /home/rt2776/cnv_espresso/predict_pcgc/pcgc_NimbleGenV2_data.txt \
-    /home/rt2776/cnv_espresso/predict_pcgc/images/ 
+    /home/rt2776/cnv_espresso/predict_pcgc/images_new/ 
 
 python /home/rt2776/cnv_espresso/src/generate_images_results_check_annotate.py \
     /home/rt2776/cnv_espresso/predict_pcgc/pcgc_NimbleGenV2_data.txt \
-    /home/rt2776/cnv_espresso/predict_pcgc/images/ 
+    /home/rt2776/cnv_espresso/predict_pcgc/images_new/ 
 
 ## predictions
 
@@ -235,6 +235,7 @@ python ~/cnv_toolkit/scripts/5_annotation.py cnvfrequency_given_cohort \
     --given_cohort /home/rt2776/cnv_control/Control_SPARK27_unaffected_parents.txt \ 
     --output /home/rt2776/cnv_espresso/predict_pcgc/pcgc_w_batch_targets_af.txt
 
+python /home/rt2776/cnv_espresso/src/prediction.py
 
 ##--------------------------------------------------------------------------------------------------------------##
 ## Step 7. Deep Learning model

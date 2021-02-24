@@ -24,7 +24,7 @@ CNV_TYPE    = ['cnv_type','type','TYPE','CNV', 'CNV_TYPE']
 NUM_TARGETS = ['NUM_TARGETS','targets']
 CNV_LABEL   = ['LABEL_VAL','label','LABEL']
 
-target_group = 3 # the number of targets per group
+fixed_win_num = 3 # the number of targets per group
 #color_del = (0,1,0) #green
 #color_dup = (1,0,0) #red
 color_del, color_dup = (0,0,1), (0,0,1) #blue for three classes labels
@@ -71,7 +71,7 @@ os.makedirs(output_SplitCNV_image_dir,   exist_ok=True)
 cnv_data_df = pd.read_table(cnv_file, header=0)
 
 ## Functions
-def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, target_group):
+def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixed_win_num):
     # tabix RD file to fetch 
     #RD_norm_file = RD_norm_dir+sampleID+'.cov.bed.norm.gz'
     RD_norm_file = fetch_relative_file_path(RD_norm_dir, sampleID,'gz')
@@ -86,7 +86,7 @@ def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, targ
     RD_fetched_df = pd.DataFrame(data=RD_fetched_data, columns=['chr', 'start', 'end', 'GC', 'RD_raw', 'RD_norm'])
     # add a new column as target groups
     RD_fetched_df_tmp = RD_fetched_df.copy()
-    RD_fetched_df_tmp.loc[:, 'target_group'] = [val for val in np.arange(1,math.ceil((len(RD_fetched_df_tmp)/target_group))+1) for i in range(target_group)][0:len(RD_fetched_df_tmp)]
+    RD_fetched_df_tmp.loc[:, 'fixed_win_num'] = [val for val in np.arange(1,math.ceil((len(RD_fetched_df_tmp)/fixed_win_num))+1) for i in range(fixed_win_num)][0:len(RD_fetched_df_tmp)]
     RD_fetched_df = RD_fetched_df_tmp
     del RD_fetched_df_tmp
     # change the type of columns
@@ -104,7 +104,7 @@ def loadRefSamplesID(ref_samples_file):
                                         names=['sampleID', 'r2'])
     return ref_samplesID_df
 
-def fetchRefRDdata_byTabix(ref_samples_file, cnv_chr, cnv_start, cnv_end, target_group):
+def fetchRefRDdata_byTabix(ref_samples_file, cnv_chr, cnv_start, cnv_end, fixed_win_num):
     # load reference sample ID
     ref_samplesID_df = loadRefSamplesID(ref_samples_file)
     # load RD normalized data and fetch RD given the cnv region for each reference sample
@@ -112,7 +112,7 @@ def fetchRefRDdata_byTabix(ref_samples_file, cnv_chr, cnv_start, cnv_end, target
     for index, row in ref_samplesID_df.iterrows():  
         ref_sampleID = row[0]
         try:
-            ref_RD_cnv_region = fetchRDdata_byTabix(RD_norm_dir, ref_sampleID, cnv_chr, cnv_start, cnv_end, target_group)
+            ref_RD_cnv_region = fetchRDdata_byTabix(RD_norm_dir, ref_sampleID, cnv_chr, cnv_start, cnv_end, fixed_win_num)
             # add a new column as sampleID
             RD_cnv_region_tmp = ref_RD_cnv_region.copy()
             RD_cnv_region_tmp.loc[:, 'sample'] = [ref_sampleID]*len(ref_RD_cnv_region)
@@ -233,7 +233,7 @@ print("[%d|%d] Illustrating: %s %s:%d-%d %s #targets:%s Label:%s"% \
 
 ## Import RD data info
 print("  --Step1. Fetching RD data for case sample ...")
-RD_cnv_region = fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, target_group)
+RD_cnv_region_df = fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixed_win_num)
 
 ## Fetch Read depth data for reference samples in terms of CNV boundary       
 print("  --Step2. Fetching RD data for reference samples ...")
@@ -241,20 +241,19 @@ print("  --Step2. Fetching RD data for reference samples ...")
 ref_samples_file = fetch_relative_file_path(ref_samples_dir, sampleID,'txt')
 if not os.path.exists(ref_samples_file):
     print("    -[Error]: error in reference samples related file for %s in %s"%(sampleID, ref_samples_dir))
-    #TODO: write to log file
     exit(0)
-reference_RD_df = fetchRefRDdata_byTabix(ref_samples_file, cnv_chr, cnv_start, cnv_end, target_group)
+reference_RD_df = fetchRefRDdata_byTabix(ref_samples_file, cnv_chr, cnv_start, cnv_end, fixed_win_num)
     
 ## plot whole cnv
 print("  --Step3. Illustrating an image for the whole CNV ...")
 title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type + \
              " "+ str((cnv_end-cnv_start)/1000) + 'kb'+ " #targets:"+str(cnv_num_targets) + \
-             " #wins:" + str(len(RD_cnv_region)) + "\nCANOES:"+cnv_canoes + " XHMM:"+ \
+             " #wins:" + str(len(RD_cnv_region_df)) + "\nCANOES:"+cnv_canoes + " XHMM:"+ \
              cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:"+cnv_num_carriers + \
              " Label:"+cnv_label_str+"_"+cnv_type
 
 image_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
-             "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region))+"wins_"+ \
+             "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region_df))+"wins_"+ \
              cnv_label_str+"_"+cnv_type+".png"
 
 fig = plt.figure(dpi=150,figsize=(10, 7)) 
@@ -267,42 +266,99 @@ for sample_reader in reference_RD_df["sample"].unique():
                         color='grey', marker='.', linewidth=0.2)
 
 ### plot case sample
-ax_rd.plot((RD_cnv_region["start"]+RD_cnv_region["end"])/2, RD_cnv_region["RD_norm"],color=case_sample_color , marker='o', linewidth=2)
+ax_rd.plot((RD_cnv_region_df["start"]+RD_cnv_region_df["end"])/2, RD_cnv_region_df["RD_norm"], \
+            color=case_sample_color , marker='o', linewidth=2)
 ax_rd.set_title(title_info)
 plt.savefig(output_EntireCNV_image_dir+image_file)
 plt.close() 
 
+### plot split CNV for each three targets
+#print("  --Step4. Illustrating images for the CNV splited by each %d windows ..."%fixed_win_num)
+#split_cnv_path_list = []
+#for group_id in np.unique(RD_cnv_region['fixed_win_num']):
+#    ## if targets equal to required number (3 by default)
+#    if len(RD_cnv_region[RD_cnv_region['fixed_win_num']==group_id]) == fixed_win_num:
+#        title_split_info = title_info +" Group:"+ str(int(len(RD_cnv_region)/fixed_win_num))+ \
+#                           "-"+ str(group_id)
+#                           
+#        image_split_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+ \
+#                str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_label_str+"_"+cnv_type+ \
+#                "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region))+ \
+#                "wins_splits"+str(int(len(RD_cnv_region)/fixed_win_num))+"_"+ str(group_id) +".png"
+#
+#        fig = plt.figure(dpi=150,figsize=(7, 7)) 
+#        ax_rd = fig.subplots(nrows=1, ncols=1)
+#
+#        RD_cnv_region_split = RD_cnv_region[RD_cnv_region["fixed_win_num"]==group_id]
+#        reference_RD_df_split = reference_RD_df[reference_RD_df["fixed_win_num"]==group_id]
+#        # plot reference samples
+#        for sample_reader in reference_RD_df_split["sample"].unique():
+#            ref_sample_df = reference_RD_df_split[reference_RD_df_split["sample"]==sample_reader]
+#            ax_rd.plot((ref_sample_df["start"]+ref_sample_df["end"])/2, ref_sample_df["RD_norm"], color = 'grey', marker='.', linewidth=0.2)
+#        # plot case sample
+#        ax_rd.plot((RD_cnv_region_split["start"]+RD_cnv_region_split["end"])/2, RD_cnv_region_split["RD_norm"],
+#                color=case_sample_color, marker='o', linewidth=2)
+#        ax_rd.set_title(title_split_info)
+#        plt.savefig(output_SplitCNV_image_dir+image_split_file)
+#        plt.close()
+#        split_cnv_path_list.append(output_SplitCNV_image_dir+image_split_file)
+#print("  --[Done]. Images have output to %s and %s."%(output_SplitCNV_image_dir+image_file, output_SplitCNV_image_dir))
+
 ## plot split CNV for each three targets
-print("  --Step4. Illustrating images for the CNV splited by each %d windows ..."%target_group)
+print("  --Step4. Illustrating images for the CNV splited by each %d windows ..."%fixed_win_num)
 split_cnv_path_list = []
-for group_id in np.unique(RD_cnv_region['target_group']):
-    ## if targets equal to required number (3 by default)
-    if len(RD_cnv_region[RD_cnv_region['target_group']==group_id]) == target_group:
-        title_split_info = title_info +" Group:"+ str(int(len(RD_cnv_region)/target_group))+ \
-                           "-"+ str(group_id)
-                           
-        image_split_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+ \
-                str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_label_str+"_"+cnv_type+ \
-                "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region))+ \
-                "wins_splits"+str(int(len(RD_cnv_region)/target_group))+"_"+ str(group_id) +".png"
 
-        fig = plt.figure(dpi=150,figsize=(7, 7)) 
-        ax_rd = fig.subplots(nrows=1, ncols=1)
+cnv_target_num = len(RD_cnv_region_df)
+sub_img_num = 0
+for i in range(0, cnv_target_num-1, fixed_win_num-1): #for 3 target fixed window, the pace is 2
+    sub_img_num += 1
+    if i+2 <= cnv_target_num-1:
+        start_index = i
+        stop_index  = i+2
+    elif i+1 <= cnv_target_num-1:
+        start_index = i-1
+        stop_index  = i+1
+    elif i >= cnv_target_num-1:
+        break
+    print("\tFor %d targets in total, processing targets: %d-%d"%(cnv_target_num, start_index, stop_index))
+    # init image info
+    split_win = str(int(len(RD_cnv_region_df)/(fixed_win_num-1)))
+    title_split_info = title_info + " Images:" + split_win + "-" + str(sub_img_num) 
+    image_split_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+ \
+            str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_label_str+"_"+cnv_type + \
+            "_"+str(cnv_num_targets)+"tgs_" + str(len(RD_cnv_region_df)) + \
+            "wins_splits" + split_win + "_" + str(sub_img_num)+".png"
 
-        RD_cnv_region_split = RD_cnv_region[RD_cnv_region["target_group"]==group_id]
-        reference_RD_df_split = reference_RD_df[reference_RD_df["target_group"]==group_id]
-        # plot reference samples
-        for sample_reader in reference_RD_df_split["sample"].unique():
-            ref_sample_df = reference_RD_df_split[reference_RD_df_split["sample"]==sample_reader]
-            ax_rd.plot((ref_sample_df["start"]+ref_sample_df["end"])/2, ref_sample_df["RD_norm"], color = 'grey', marker='.', linewidth=0.2)
-        # plot case sample
-        ax_rd.plot((RD_cnv_region_split["start"]+RD_cnv_region_split["end"])/2, RD_cnv_region_split["RD_norm"],
-                color=case_sample_color, marker='o', linewidth=2)
-        ax_rd.set_title(title_split_info)
-        plt.savefig(output_SplitCNV_image_dir+image_split_file)
-        plt.close()
-        split_cnv_path_list.append(output_SplitCNV_image_dir+image_split_file)
+    fig = plt.figure(dpi=150,figsize=(7, 7)) 
+    ax_rd = fig.subplots(nrows=1, ncols=1)
+    
+    # select data
+    RD_cnv_region_split = RD_cnv_region_df.iloc[start_index:stop_index+1]
+
+    if len(np.unique(RD_cnv_region_split["chr"]) )>1:
+        print("[Error] many chr?")
+        pdb.set_trace()
+
+    split_chr = np.unique(RD_cnv_region_split["chr"])[0]
+    split_start_from = np.min(RD_cnv_region_split["start"])
+    split_start_to   = np.max(RD_cnv_region_split["start"])
+    reference_RD_df_split = reference_RD_df[(reference_RD_df["start"]>=split_start_from) &
+                                            (reference_RD_df["start"]<=split_start_to)]
+    
+    # plot reference samples
+    for sample_reader in reference_RD_df_split["sample"].unique():
+        ref_sample_df =  reference_RD_df_split[reference_RD_df_split["sample"]==sample_reader]
+        ax_rd.plot((ref_sample_df["start"]+ref_sample_df["end"])/2, ref_sample_df["RD_norm"],
+                    color = 'grey', marker='.', linewidth=0.2)
+    
+    # plot case sample
+    ax_rd.plot((RD_cnv_region_split["start"]+RD_cnv_region_split["end"])/2, RD_cnv_region_split["RD_norm"],
+            color=case_sample_color, marker='o', linewidth=2)
+    ax_rd.set_title(title_split_info)
+    plt.savefig(output_SplitCNV_image_dir+image_split_file)
+    plt.close()
+    split_cnv_path_list.append(output_SplitCNV_image_dir+image_split_file)
 print("  --[Done]. Images have output to %s and %s."%(output_SplitCNV_image_dir+image_file, output_SplitCNV_image_dir))
 
-### address the image path to cnv_info file
+## address the image path to cnv_info file
 cnv_data_df.loc[index, 'split_cnv_path'] = '\n'.join([each_path for each_path in split_cnv_path_list])
