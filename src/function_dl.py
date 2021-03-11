@@ -102,9 +102,9 @@ def fetch_roc_info_by_num_win(model, cnv_info_df, img, label, min_win, max_win):
                                                                 max_win)
     num_cnv = len(selected_df)
     if min_win != max_win:
-        roc_info = "Win-size:" + str(min_win) + "-" + str(max_win) + ", #CNVs:" + str(num_cnv)
+        roc_info = "#Targets: " + str(min_win) + "-" + str(max_win) + ", #CNVs: " + str(num_cnv)
     else:
-        roc_info = "Win-size:" + str(min_win) + ", #CNVs:" + str(num_cnv)
+        roc_info = "#Targets: " + str(min_win) + ", #CNVs: " + str(num_cnv)
         
     fpr, tpr, thresholds, auc = pred_roc_data(model, selected_img, selected_label)
     
@@ -149,15 +149,15 @@ def output_model_metrics(model_name, loss, accuracy, f1_score, precision, recall
 show results
 ''' 
 #from sklearn.metrics import classification_report
-def show_confusion_matrix(validations, predictions, lables):
+def show_confusion_matrix(validations, predictions, labels):
     matrix = metrics.confusion_matrix(validations, predictions)
     plt.figure(figsize=(6, 4),dpi=150)
     sns.heatmap(matrix,
                 cmap="coolwarm",
                 linecolor='white',
                 linewidths=1,
-                xticklabels=lables,
-                yticklabels=lables,
+                xticklabels=labels,
+                yticklabels=labels,
                 annot=True,
                 fmt="d")
     plt.title("Confusion Matrix")
@@ -172,7 +172,10 @@ def confusion_matrix(model, test_img, test_label, nClasses):
         labels = ['DEL', 'Not_DEL', 'Not_DUP', 'DUP']
     if nClasses == 3:
         print("3 classes label: 0-True del; 1-True dip; 2-True dup")
-        labels = ['DEL', 'DIP', 'DUP']        
+        labels = ['DEL', 'DIP', 'DUP']   
+    if nClasses == 2:
+        print("2 classes label: 1-True; 0-False")
+        labels = ['False', 'True']  
 
     test_pred = model.predict(test_img)
     if test_label.ndim >1:
