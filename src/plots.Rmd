@@ -13,8 +13,8 @@ require(IDPmisc)
 library(RColorBrewer)
 
 output_dir <- "/Users/rtan/terra_rt2776/CNV_Espresso/images/"
-gc_norm_file <- '/home/rt2776/cnv_espresso/data/SP0044942.cov.bed.gz.normalized_gc'
-gc_norm_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/data/norm/SP0000027.cov.bed.norm'
+gc_norm_file <- '/home/rt2776/cnv_espresso/data/norm/SP0044942.cov.bed.gz.normalized_gc'
+gc_norm_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/data/norm/SP0000027.cov.bed.norm.gz'
 gc_norm_df <- read.table(gc_norm_file,col.names = c("CHR", "START", "END", "GC", "RD_raw", "RD_norm"))
 
 
@@ -23,19 +23,37 @@ gc_norm_df <- read.table(gc_norm_file,col.names = c("CHR", "START", "END", "GC",
 buylrd = c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF",
            "#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026") 
 myColRamp = colorRampPalette(c(buylrd))
+
+```
+
+
+```{r}
 # smoothed scatterplot
+pdf(file = "./GC_normlization_before.pdf")
 smoothScatter(x=gc_norm_df$GC,gc_norm_df$RD_raw,
               colramp=myColRamp,
-              main="Before GC normalization",
-              xlab="GC",
-              ylab="RD")
+              main="Before GC content normalization",
+              xlab="GC content",
+              ylab="Raw read depth",
+              cex.main=1.5,
+              cex.axis=1.5,
+              cex.lab=1.5
+              )
+dev.off()
 ```
+
 ```{r}
+pdf(file = "./GC_normlization_after.pdf")
 smoothScatter(x=gc_norm_df$GC,gc_norm_df$RD_norm,
               colramp=myColRamp,
-              main="After GC normalization",
-              xlab="GC",
-              ylab="Normalized RD")
+              main="After GC content normalization",
+              xlab="GC content",
+              ylab="Normalized read depth",
+              cex.main=1.5,
+              cex.axis=1.5,
+              cex.lab=1.5
+              )
+dev.off()
 ```
 
 #-----------------------------------------------------------------------------------------------

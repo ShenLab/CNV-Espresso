@@ -4,6 +4,8 @@ import os
 import re
 import copy
 import random
+import numbers
+import six
 import datetime
 import tensorflow as tf
 print("Tensorflow version " + tf.__version__)
@@ -12,6 +14,7 @@ import pandas as pd
 import PIL
 import numpy as np
 from matplotlib import pyplot as plt
+import matplotlib.collections
 import seaborn as sns
 
 from sklearn.model_selection import train_test_split
@@ -269,7 +272,7 @@ def draw_multiple_roc_curve(tpr_list, fpr_list, auc_list, info_list, output_imag
     
     if output_image_file != None:
         path, filename, file_extension = func.extractFilePathNameExtension(output_image_file)
-        image_zoom_file = path + filename + "_zoom" +file_extension
+        image_zoom_file = path + '/' + filename + "_zoom" +file_extension
         plt.savefig(image_zoom_file, facecolor='w', edgecolor='w', bbox_inches = 'tight')
         print("Zoomed ROC curve output plot to:",image_zoom_file)
     plt.show()
@@ -351,11 +354,115 @@ def draw_kfold_roc_curve(tpr_list, tpr_interp_list, fpr_list, auc_list, output_i
         print("Zoomed ROC curve output plot to:",image_zoom_file)
     plt.show()
     plt.close()
-    
+   
+# ROC curve with color bar to view thresholds
+def make_segments(x, y):
+    '''
+    Create list of line segments from x and y coordinates,
+    in the correct format for LineCollection:
+    an array of the form
+    numlines x (points per line) x 2 (x and y) array
+    '''
+
+    points = np.array([x, y]).T.reshape(-1, 1, 2)
+    segments = np.concatenate([points[:-1], points[1:]], axis=1)
+
+    return segments
+
+
+def colorline(x, y, z=None, axes=None,
+              cmap=plt.get_cmap('coolwarm'),
+              norm=plt.Normalize(0.0, 1.0), linewidth=3, alpha=1.0,
+              **kwargs):
+    '''
+    Plot a colored line with coordinates x and y
+    Optionally specify colors in the array z
+    Optionally specify a colormap, a norm function and a line width
+    '''
+
+    # Default colors equally spaced on [0,1]:
+    if z is None:
+        z = np.linspace(0.0, 1.0, len(x))
+
+    # Special case if a single number:
+    if isinstance(z, numbers.Real):
+        z = np.array([z])
+
+    z = np.asarray(z)
+
+    segments = make_segments(x, y)
+    lc = matplotlib.collections.LineCollection(
+        segments, array=z, cmap=cmap, norm=norm,
+        linewidth=linewidth, alpha=alpha, **kwargs
+    )
+
+    if axes is None:
+        axes = plt.gca()
+
+    axes.add_collection(lc)
+    axes.autoscale()
+
+    return lc
+
+
+def plot_roc(tpr, fpr, thresholds, subplots_kwargs=None,
+             label_every=None, label_kwargs=None,
+             fpr_label='False Positive Rate',
+             tpr_label='True Positive Rate',
+             luck_label='Luck',
+             title='Receiver operating characteristic',
+             **kwargs):
+
+    if subplots_kwargs is None:
+        subplots_kwargs = {}
+
+    figure, axes = plt.subplots(1, 1, **subplots_kwargs)
+
+    if 'lw' not in kwargs:
+        kwargs['lw'] = 1
+
+    axes.plot(fpr, tpr, **kwargs)
+
+    if label_every is not None:
+        if label_kwargs is None:
+            label_kwargs = {}
+
+        if 'bbox' not in label_kwargs:
+            label_kwargs['bbox'] = dict(
+                boxstyle='round,pad=0.5', fc='yellow', alpha=0.5,
+            )
+
+        for k in six.moves.range(len(tpr)):
+            if k % label_every != 0:
+                continue
+
+            threshold = str(numpy.round(thresholds[k], 2))
+            x = fpr[k]
+            y = tpr[k]
+            axes.annotate(threshold, (x, y), **label_kwargs)
+
+    if luck_label is not None:
+        axes.plot((0, 1), (0, 1), '--', color='Gray', label=luck_label)
+
+    lc = colorline(fpr, tpr, thresholds, axes=axes)
+    figure.colorbar(lc)
+
+    axes.set_xlim([-0.05, 1.05])
+    axes.set_ylim([-0.05, 1.05])
+
+    axes.set_xlabel(fpr_label)
+    axes.set_ylabel(tpr_label)
+
+    axes.set_title(title)
+
+    axes.legend(loc="lower right")
+
+    return figure, axes
+
 '''
 CNN models
 '''
-def cnn_model(model_name, nClasses):
+def cnn_model(model_name, nClasses, input_shape):
     if model_name == "CNN_model":
         model = Sequential()
         # The first two layers with 32 filters of window size 3x3
@@ -432,14 +539,14 @@ def cnn_model(model_name, nClasses):
         print("[Error] No this model%s:"%model_name)
         pdb.set_trace()
         
-def transfer_learning_model(model_name, nClasses, trainable=False):
+def transfer_learning_model(model_name, nClasses, learning_rate, trainable=False):
     if model_name == "MobileNet_v1":
         base_model = tf.keras.applications.MobileNet(
         weights='imagenet',  # Load weights pre-trained model.
         input_shape=(224, 224, 3),    #input_shape=(224, 224, 3),
         include_top=False)  # Do not include the ImageNet classifier at the top.
         
-        print("Model name: %s, nClasses: %d, Trainable: %s"%(model_name, nClasses, trainable))
+        print("Model name: %s, nClasses: %d, Learning rate:%f, Trainable: %s"%(model_name, nClasses, learning_rate, trainable))
         base_model.trainable = trainable
         inputs = keras.Input(shape=(224, 224, 3)) #keras.Input(shape=(224, 224, 3))
         # We make sure that the base_model is running in inference mode here,
@@ -451,13 +558,36 @@ def transfer_learning_model(model_name, nClasses, trainable=False):
         x = keras.layers.GlobalAveragePooling2D()(x)
         # A Dense classifier with a single unit (binary classification)
         outputs = keras.layers.Dense(nClasses,activation='softmax')(x)
-
-#         x = keras.layers.Dense(512, activation='relu')(x)
-#         x = keras.layers.Dropout(0.5)(x)
-#         outputs = keras.layers.Dense(nClasses,activation='softmax')(x) 
         
         model = keras.Model(inputs, outputs)
-        model.compile(loss='categorical_crossentropy', metrics=['accuracy', f1_m, precision_m, recall_m])
+        #model.compile(loss='categorical_crossentropy', metrics=['accuracy', f1_m, precision_m, recall_m])
+        model.compile(optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
+                      loss='categorical_crossentropy', metrics=['accuracy', f1_m, precision_m, recall_m])  
+        return model
+    
+    if model_name == "ResNet50":
+        base_model = tf.keras.applications.ResNet50(
+        weights='imagenet',  # Load weights pre-trained model.
+        input_shape=(224, 224, 3),    #input_shape=(224, 224, 3),
+        include_top=False)  # Do not include the ImageNet classifier at the top.
+        
+        print("Model name: %s, nClasses: %d, Learning rate:%f, Trainable: %s"%(model_name, nClasses, learning_rate, trainable))
+        base_model.trainable = trainable
+        inputs = keras.Input(shape=(224, 224, 3)) #keras.Input(shape=(224, 224, 3))
+        # We make sure that the base_model is running in inference mode here,
+        # by passing `training=False`. This is important for fine-tuning, as you will
+        # learn in a few paragraphs.
+        x = base_model(inputs, training=trainable)
+        
+        # Convert features of shape `base_model.output_shape[1:]` to vectors
+        x = keras.layers.GlobalAveragePooling2D()(x)
+        # A Dense classifier with a single unit (binary classification)
+        outputs = keras.layers.Dense(nClasses,activation='softmax')(x)
+        
+        model = keras.Model(inputs, outputs)
+        #model.compile(loss='categorical_crossentropy', metrics=['accuracy', f1_m, precision_m, recall_m])
+        model.compile(optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
+                      loss='categorical_crossentropy', metrics=['accuracy', f1_m, precision_m, recall_m]) 
         return model
     
     else:
