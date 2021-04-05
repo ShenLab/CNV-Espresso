@@ -29,10 +29,12 @@ def nb_zscore_norm(corrected_rd):
 
 def normalization(args): 
     windows_file = str(args.windows)
+    debug_flag   = args.debug
+
     input_file_list = []
     if args.input and not args.input_list:
         input_file = str(args.input)
-        input_file_list.append(input_file)
+        input_file_list.append([input_file])
 
     elif args.input_list:
         input_file_list = df.fileToList(args.input_list)
@@ -54,8 +56,8 @@ def normalization(args):
     windwos_gc   = windows_dict['gc']
     windows_mappability = windows_dict['mappability']
 
-    for input_file in input_file_list:
-        input_file = input_file
+    for input_file_reader in input_file_list:
+        input_file = input_file_reader[0]
         (input_dir,input_name) = os.path.split(input_file)
         (input_filename,input_extension) = os.path.splitext(input_name)
 
@@ -89,17 +91,26 @@ def normalization(args):
         corrected_rd   = np.zeros(len(input_sample_rd), dtype=np.float)
         overall_median = np.median(GC_percentage)
         overall_mean   = np.mean(GC_percentage)
+
+        sum_num_targets = 0
         for gc in GC_index.keys():
             t_ind = GC_index[gc]
             t_median = np.median(input_sample_rd[t_ind])
+            sum_num_targets += len(t_ind) 
+            if debug_flag == True:
+                print("GC:",gc,"t-median:",t_median,"#target:",len(t_ind))
+
             if t_median == 0:
-                print('[WARNING] Median read depth of [GC=%d] targets is 0. Set the RD of these target to 0.' %(gc))
+                if debug_flag == True:
+                    print('[WARNING] Median read depth of [GC=%d] targets is 0. Set %d RD of these target to 0.'%(len(t_ind),gc))
                 corrected_rd[t_ind] = 0
             else:
                 # Round to discret variables for NB distribution
                 #corrected_rd[t_ind] = np.round(input_sample_rd[t_ind] * overall_median / t_median)
                 corrected_rd[t_ind] = (input_sample_rd[t_ind] * overall_median / t_median) / overall_mean
-        
+
+        if debug_flag == True:
+            print("For across all %d targets, overall_median: %f, overall_mean:%f"%(sum_num_targets, overall_median,  overall_mean))
         corrected_rd = np.around(corrected_rd,decimals=6)
         
         # Output
@@ -127,6 +138,7 @@ svd_parser.add_argument('--windows', required=True, help='Please input the targe
 svd_parser.add_argument('--input', required=False, help='Please input a read depth file for a given sample')
 svd_parser.add_argument('--input_list', required=False, help='Please input a read depth file list for a given batch of samples')
 svd_parser.add_argument('--output', required=False, help='Output folder for normalized read depth files')
+svd_parser.add_argument('--debug', required=False, default=False,  help='Output folder for normalized read depth files')
 svd_parser.set_defaults(func=normalization)
 
 ##RPKM files -> Matrix
