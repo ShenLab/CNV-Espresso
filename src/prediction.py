@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # CNN Prediction
-
+## CNN Prediction
 from __future__ import print_function
 import os
 import re
+import sys
 import pdb
 import copy
 import random
@@ -13,7 +13,6 @@ import datetime
 import tensorflow as tf
 print("Tensorflow version " + tf.__version__)
 import pandas as pd
-
 import PIL
 import numpy as np
 from matplotlib import pyplot as plt
@@ -21,7 +20,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve
 from sklearn.metrics import auc
 import sklearn
-
 import keras
 import keras.preprocessing
 from keras.models import Sequential
@@ -31,21 +29,26 @@ from keras.models import load_model
 from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 
+import function as func
 import function_dl as func_dl
 
+# GPU selection
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+physical_devices = tf.config.experimental.list_physical_devices('GPU') 
+
+# Variables
+cnv_info_file = sys.argv[1]
+model_file    = sys.argv[2] 
+output_file   = sys.argv[3]
 
 img_width, img_height = 224, 224
 
-
-## For pcgc experimental cnvs
-cnv_info_file = '/home/rt2776/cnv_espresso/predict_pcgc/images_new/pcgc_NimbleGenV2_data_withImagePath.csv'
+# Loading CNV_info and images. 
 cnv_info_df   = pd.read_csv(cnv_info_file)
-
 entire_cnv_images_path_list  = cnv_info_df['entire_cnv_path']
 
-# ### Loading images from list to numpy array
 img_np = func_dl.loadImgs(entire_cnv_images_path_list, img_width, img_height)
-pdb.set_trace()
+
 # ## Normalization
 # Find the shape of input images and create the variable input_shape
 nRows,nCols,nDims = img_np.shape[1:]
@@ -69,21 +72,40 @@ custom_objects = {"f1_m":func_dl.f1_m, "precision_m":func_dl.precision_m, "recal
 
 model_name = 'MobileNet_v1'
 #model_path = '/home/rt2776/cnv_espresso/images_rare_3classes/data_backup/model_h5/rare_entire_cnv_MobileNet_v1_3classes.h5'
-model_path = '/home/rt2776/cnv_espresso/images_rare_3classes/data_backup/model_h5/rare_entire_cnv_MobileNet_v1_fine-tuning_3classes.h5'
-print("Loading %s ... from %s"%(model_name, model_path))
-MobileNet_model = keras.models.load_model(model_path, custom_objects=custom_objects)
+#model_path = '/home/rt2776/cnv_espresso/images_rare_3classes/data_backup/model_h5/rare_entire_cnv_MobileNet_v1_fine-tuning_3classes.h5'
+print("Loading %s ... from %s"%(model_name, model_file))
+MobileNet_model = keras.models.load_model(model_file, custom_objects=custom_objects)
 
 img_pred = MobileNet_model.predict(img_np)
-
 pred_output_df = copy.deepcopy(cnv_info_df)
-pred_output_df.shape
+pred_output_df.insert(pred_output_df.shape[1], 'Prob_DEL', "-")
+pred_output_df.insert(pred_output_df.shape[1], 'Prob_DIP', "-")
+pred_output_df.insert(pred_output_df.shape[1], 'Prob_DUP', "-")
+pred_output_df.insert(pred_output_df.shape[1], 'Prob', "-")
+pred_output_df.insert(pred_output_df.shape[1], 'Prediction', "-")
+pred_output_df.insert(pred_output_df.shape[1], 'Status', "-")
 
-pred_output_df.insert(pred_output_df.shape[1], 'Prob_True', "")
-pred_output_df.insert(pred_output_df.shape[1], 'Prob_False', "")
-pred_output_df.insert(pred_output_df.shape[1], 'Prediction', "")
-pred_output_df.insert(pred_output_df.shape[1], 'Pred_status', "")
+num, correct_count = 0, 0
+for i in range(len(img_pred)):
+    num += 1
+    pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prob_DEL')] = img_pred[i][0]
+    pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prob_DIP')] = img_pred[i][1]
+    pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prob_DUP')] = img_pred[i][2]
+    pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prob')] = np.max(img_pred[i])
+    
+    if(np.argmax(img_pred[i]) == 0):
+        pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "DEL"
+    elif(np.argmax(img_pred[i]) == 1):
+        pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "DIP"
+    elif(np.argmax(img_pred[i]) == 2):
+        pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "DUP"
+    else:
+        pdb.set_trace()
+        
+    if pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] == pred_output_df.iloc[i,pred_output_df.columns.get_loc('TYPE')]:
+        pred_output_df.iloc[i,pred_output_df.columns.get_loc('Status')] = "Positive"
+    else:
+        pred_output_df.iloc[i,pred_output_df.columns.get_loc('Status')] = "Negative"
 
 ## output to file
-output_path = '/home/rt2776/cnv_espresso/predict_pcgc/'
-pred_output_df.to_csv(output_path+'pcgc_NimbleGenV2_data_prediction_0223.csv',index=False)
-
+pred_output_df.to_csv(output_file,index=False)

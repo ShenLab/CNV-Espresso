@@ -88,7 +88,7 @@ def normalization(args):
                 GC_index[gc] = [ind]
 
         print('Normalizing by GC percentage...')
-        corrected_rd   = np.zeros(len(input_sample_rd), dtype=np.float)
+        corrected_rd   = np.zeros(len(input_sample_rd), dtype=float)
         overall_median = np.median(GC_percentage)
         overall_mean   = np.mean(GC_percentage)
 

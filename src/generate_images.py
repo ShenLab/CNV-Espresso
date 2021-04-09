@@ -22,7 +22,8 @@ CNV_START   = ['cnv_start', 'start', 'PRED_START', 'START','Start']
 CNV_END     = ['cnv_stop', 'stop', 'PRED_END', 'END','End']
 CNV_TYPE    = ['cnv_type','type','TYPE','CNV', 'CNV_TYPE']
 NUM_TARGETS = ['NUM_TARGETS','targets']
-CNV_LABEL   = ['LABEL_VAL','label','LABEL']
+GSD_LABEL   = ['LABEL_VAL','label','LABEL','GSD_info']
+PRE_LABEL   = ['CNLearn_PRED_LABEL', 'PRED_LABEL']
 
 fixed_win_num = 3 # the number of targets per group
 #color_del = (0,1,0) #green
@@ -68,7 +69,7 @@ os.makedirs(output_SplitCNV_image_dir,   exist_ok=True)
 
 
 ## CNV info
-cnv_data_df = pd.read_table(cnv_file, header=0)
+cnv_data_df = pd.read_table(cnv_file, header=0, sep=r'\,|\t', engine='python')
 
 ## Functions
 def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixed_win_num):
@@ -161,11 +162,36 @@ col_cnv_end   = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_END))
 col_cnv_type  = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_TYPE))
 try:
     col_cnv_num_targets = cnv_data_header.index(fetch_colName(cnv_data_header,NUM_TARGETS))
-    col_cnv_label = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_LABEL))
+except:
+    pass
+
+try:
     col_cnv_canoes= cnv_data_header.index(fetch_colName(cnv_data_header,['CANOES','CANOES_RT']))
+except:
+    pass
+
+try:
     col_cnv_xhmm  = cnv_data_header.index(fetch_colName(cnv_data_header,['XHMM','XHMM_RT']))
+except:
+    pass
+
+try:
     col_cnv_clamms= cnv_data_header.index(fetch_colName(cnv_data_header,['CLAMMS','CLAMMS_RT']))
+except:
+    pass
+
+try:
     col_cnv_numCarriers = cnv_data_header.index(fetch_colName(cnv_data_header,['Num_Carriers(inGivenCohort)']))
+except:
+    pass
+
+try:
+    col_GSD_label = cnv_data_header.index(fetch_colName(cnv_data_header,GSD_LABEL))
+except:
+    pass
+
+try:
+    col_PRE_label = cnv_data_header.index(fetch_colName(cnv_data_header, PRE_LABEL))
 except:
     pass
 
@@ -179,8 +205,8 @@ row   = cnv_data_df.iloc[index]
 
 sampleID  = row[col_sampleID]
 cnv_chr   = row[col_cnv_chr]
-cnv_start = np.int(row[col_cnv_start])
-cnv_end   = np.int(row[col_cnv_end])
+cnv_start = int(row[col_cnv_start])
+cnv_end   = int(row[col_cnv_end])
 cnv_type  = row[col_cnv_type]
 
 if cnv_type == 1:
@@ -191,45 +217,32 @@ else:
     pass
 
 case_sample_color = color_del if cnv_type == 'DEL' else color_dup
-try:
-    cnv_num_targets = row[col_cnv_num_targets]
-    cnv_label  = row[col_cnv_label]
-    cnv_canoes = str(row[col_cnv_canoes])
-    cnv_xhmm   = str(row[col_cnv_xhmm])
-    cnv_clamms = str(row[col_cnv_clamms])
-    cnv_num_carriers  = str(row[col_cnv_numCarriers])
-except:
-    cnv_num_targets = 'NA'
-    cnv_label = 'NA'
-    cnv_canoes = 'NA'
-    cnv_xhmm = 'NA'
-    cnv_clamms = 'NA'
-    cnv_num_carriers = 'NA' 
 
-#if cnv_type == 'DEL' and cnv_label == 0:
-#    output_image_dir = output_false_del_image_dir 
-#    output_image_splits_dir = output_false_del_image_splits_dir
-#elif cnv_type == 'DEL' and (cnv_label == 1 or cnv_label == 'NA'):
-#    output_image_dir = output_true_del_image_dir
-#    output_image_splits_dir = output_true_del_image_splits_dir
-#elif cnv_type == 'DUP' and cnv_label == 0:
-#    output_image_dir = output_false_dup_image_dir
-#    output_image_splits_dir = output_false_dup_image_splits_dir
-#elif cnv_type == 'DUP' and (cnv_label == 1 or cnv_label == 'NA'): 
-#    output_image_dir = output_true_dup_image_dir
-#    output_image_splits_dir = output_true_dup_image_splits_dir
-#else:
-#    print("cnv_label error?", cnv_label)
-#    print("cnv_type error?", cnv_type)
-#    pdb.set_trace()
-    
-if cnv_label == 'NA':
-    cnv_label_str = 'NA'
+cnv_num_targets   = df.try_except(row[col_cnv_num_targets], 'NA')
+cnv_canoes        = df.try_except(str(row[col_cnv_canoes]), 'NA')
+cnv_xhmm          = df.try_except(str(row[col_cnv_xhmm]), 'NA')
+cnv_clamms        = df.try_except(str(row[col_cnv_clamms]), 'NA')
+cnv_num_carriers  = df.try_except(str(row[col_cnv_numCarriers]), 'NA')
+cnv_gsd_label     = df.try_except(row[col_GSD_label], 'NA')
+cnv_CNLearn_label = df.try_except(row[col_PRE_label], 'NA')
+
+if cnv_gsd_label == 'NA':
+    cnv_gsd_str = 'NA'
 else:    
-    cnv_label_str = "True" if cnv_label == 1 else "False"
+    if cnv_gsd_label == 1:
+        cnv_gsd_str = "True"
+    elif cnv_gsd_label == 0:
+        cnv_gsd_str = "False"
+    else:
+        cnv_gsd_str = cnv_gsd_label 
+
+if cnv_CNLearn_label == 'NA':
+    cnv_CNLearn_str = 'NA'
+else:    
+    cnv_CNLearn_str = "True" if cnv_CNLearn_label == 1 else "False"
 
 print("[%d|%d] Illustrating: %s %s:%d-%d %s #targets:%s Label:%s"% \
-       (len(cnv_data_df), index+1, sampleID, cnv_chr, cnv_start, cnv_end, cnv_type, str(cnv_num_targets), cnv_label_str))
+       (len(cnv_data_df), index+1, sampleID, cnv_chr, cnv_start, cnv_end, cnv_type, str(cnv_num_targets), cnv_gsd_str))
 
 ## Import RD data info
 print("  --Step1. Fetching RD data for case sample ...")
@@ -239,6 +252,7 @@ RD_cnv_region_df = fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start
 print("  --Step2. Fetching RD data for reference samples ...")
 #ref_samples_file = ref_samples_dir+sampleID+'.ref.samples.txt.bz2'
 ref_samples_file = fetch_relative_file_path(ref_samples_dir, sampleID,'txt')
+
 if not os.path.exists(ref_samples_file):
     print("    -[Error]: error in reference samples related file for %s in %s"%(sampleID, ref_samples_dir))
     exit(0)
@@ -250,11 +264,10 @@ title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+c
              " "+ str((cnv_end-cnv_start)/1000) + 'kb'+ " #targets:"+str(cnv_num_targets) + \
              " #wins:" + str(len(RD_cnv_region_df)) + "\nCANOES:"+cnv_canoes + " XHMM:"+ \
              cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:"+cnv_num_carriers + \
-             " Label:"+cnv_label_str+"_"+cnv_type
+             " CN-Learn:"+cnv_CNLearn_str + "\nGSD_Label:"+cnv_gsd_str
 
 image_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
-             "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region_df))+"wins_"+ \
-             cnv_label_str+"_"+cnv_type+".png"
+             "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region_df))+"wins_"+cnv_type+".png"
 
 fig = plt.figure(dpi=150,figsize=(10, 7)) 
 ax_rd = fig.subplots(nrows=1, ncols=1)
@@ -325,7 +338,7 @@ for i in range(0, cnv_target_num-1, fixed_win_num-1): #for 3 target fixed window
     split_win = str(int(len(RD_cnv_region_df)/(fixed_win_num-1)))
     title_split_info = title_info + " Images:" + split_win + "-" + str(sub_img_num) 
     image_split_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+ \
-            str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_label_str+"_"+cnv_type + \
+            str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_gsd_str+"_"+cnv_type + \
             "_"+str(cnv_num_targets)+"tgs_" + str(len(RD_cnv_region_df)) + \
             "wins_splits" + split_win + "_" + str(sub_img_num)+".png"
 

@@ -88,8 +88,8 @@ for index, row in cnv_data_df.iterrows():
     row               = cnv_data_df.iloc[index]
     sampleID          = row[col_sampleID]
     cnv_chr           = row[col_cnv_chr]
-    cnv_start         = np.int(row[col_cnv_start])
-    cnv_end           = np.int(row[col_cnv_end])
+    cnv_start         = int(row[col_cnv_start])
+    cnv_end           = int(row[col_cnv_end])
     cnv_type          = row[col_cnv_type]
 
     if cnv_type == 1:
@@ -152,7 +152,7 @@ for index, row in cnv_data_df.iterrows():
     output_df.loc[index, 'split_cnv_path'] = split_cnv_path 
     
     ## check the status
-    if index % 1000 == 0:
+    if index % 100 == 0:
         print(index, output_df.loc[index,:])
 
 ## output results
