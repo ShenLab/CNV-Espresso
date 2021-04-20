@@ -17,6 +17,7 @@ import copy
 
 ## Variables
 SAMPLE      = func.global_variables()['SAMPLE']
+CNV_INTERVAL= func.global_variables()['CNV_INTERVAL']
 CNV_CHR     = func.global_variables()['CNV_CHR']
 CNV_START   = func.global_variables()['CNV_START']
 CNV_END     = func.global_variables()['CNV_END']
@@ -60,10 +61,14 @@ cnv_data_header = cnv_data_df.columns.tolist()
 cnv_data_header = [col_name.upper() for col_name in cnv_data_header] # upper all colnames
 
 col_sampleID  = cnv_data_header.index(fetch_colName(cnv_data_header,SAMPLE))
-col_cnv_chr   = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_CHR))
-col_cnv_start = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_START))
-col_cnv_end   = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_END))
+try:
+    col_cnv_interval = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_INTERVAL))
+except:
+    col_cnv_chr   = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_CHR))
+    col_cnv_start = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_START))
+    col_cnv_end   = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_END))
 col_cnv_type  = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_TYPE))
+
 try:
     col_cnv_num_targets = cnv_data_header.index(fetch_colName(cnv_data_header,NUM_TARGETS))
     col_cnv_label = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_LABEL))
@@ -85,12 +90,16 @@ output_df.loc[:,'split_cnv_path']  = ['-']*len(output_df)
 print("Checking results ...")
 miss_num = 0
 for index, row in cnv_data_df.iterrows(): 
-    row               = cnv_data_df.iloc[index]
-    sampleID          = row[col_sampleID]
-    cnv_chr           = row[col_cnv_chr]
-    cnv_start         = int(row[col_cnv_start])
-    cnv_end           = int(row[col_cnv_end])
-    cnv_type          = row[col_cnv_type]
+    row      = cnv_data_df.iloc[index]
+    sampleID = row[col_sampleID]
+    try:
+        cnv_interval = row[col_cnv_interval]
+        cnv_chr,cnv_start,cnv_end = func.parseInterval(cnv_interval)
+    except:
+        cnv_chr   = row[col_cnv_chr]
+        cnv_start = int(row[col_cnv_start])
+        cnv_end   = int(row[col_cnv_end])
+    cnv_type = row[col_cnv_type]
 
     if cnv_type == 1:
         cnv_type = "DEL"
@@ -161,4 +170,6 @@ for index, row in cnv_data_df.iterrows():
 #del_result_df.to_csv(output_path+'/'+output_prefix+'_del_image_info.list',sep='\t',index=False)
 #dup_result_df.to_csv(output_path+'/'+output_prefix+'_dup_image_info.list',sep='\t',index=False)
 path, filename, file_extension = func.extractFilePathNameExtension(cnv_file)
-output_df.to_csv(output_path+'/'+filename+'_withImagePath.csv',index=False)
+output_file = output_path+'/'+filename+'_withImagePath.csv'
+output_df.to_csv(output_file, index=False)
+print("Output to file:",output_file)

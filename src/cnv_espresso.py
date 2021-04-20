@@ -2,31 +2,33 @@ from __future__ import division
 import os
 import argparse
 import glob
-import function as df
-#from DataManager import *
-#from hmm.Model import *
-#from hmm.ModelParams import *
+import function as func
 import operator 
-import numpy as np
-#from VCFReader import *
-from ParameterEstimation import *
 import fileinput
 import pdb
 import sys
 import time
+import itertools
+from datetime import datetime
+#from ParameterEstimation import *
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sn
 
-def nb_zscore_norm(corrected_rd):
-    # This function was used in the first version.
-    # Estimate NB distribution parameters
-    parameterLoader = ParameterEstimation(corrected_rd)
-    parameterList = parameterLoader.fit(corrected_rd,0.01,0.99)#TODO remove sex chromsomes and estimate them seperately
-    print("Estimated Paramters: ", parameterList)
-    mu = parameterList[0]
-    fi = parameterList[1]
-    sigma = (mu + (mu**2)*fi)**0.5
-    corrected_zscore = (corrected_rd - mu)/sigma
-    return(corrected_zscore)
+# Functions
+def fetch_norm_rd(sampleID, sample_norm_file):
+    df = pd.read_table(sample_norm_file,low_memory=False,header=None, sep='\t',
+                       names=['chr', 'start','end','GC','RD',sampleID])
+    return df[sampleID].to_frame()
 
+def fetch_sampleID_from_filepath(filepath):
+    filepath,tempfilename = os.path.split(filepath[0])
+    sampleID = tempfilename.replace(".cov.bed.norm.gz","")
+    return sampleID
+
+
+# Main functions
 def normalization(args): 
     windows_file = str(args.windows)
     debug_flag   = args.debug
@@ -37,7 +39,7 @@ def normalization(args):
         input_file_list.append([input_file])
 
     elif args.input_list:
-        input_file_list = df.fileToList(args.input_list)
+        input_file_list = func.fileToList(args.input_list)
     else:
         print("You must input an input file or file list.")
         exit(0)
@@ -49,7 +51,7 @@ def normalization(args):
         output_dir = os.getcwd() 
 
     print('Loading windows.bed ...')
-    windows_dict = df.loadWindows(windows_file)
+    windows_dict = func.loadWindows(windows_file)
     windows_chr  = windows_dict['chr']
     windows_start= windows_dict['start']
     windows_stop = windows_dict['stop']
@@ -65,7 +67,7 @@ def normalization(args):
         #output_parameter_file = output_dir + input_filename + '.nb.parm'
 
         print('Loading %s ...'% input_file)
-        input_sample_dict = df.loadRD(input_file)
+        input_sample_dict = func.loadRD(input_file)
         input_sample_chr   = input_sample_dict['chr']
         input_sample_start = input_sample_dict['start']
         input_sample_stop  = input_sample_dict['stop']
@@ -117,9 +119,58 @@ def normalization(args):
         output_ndarray = np.transpose(np.array([input_sample_chr, input_sample_start, input_sample_stop, \
                 GC_percentage, input_sample_rd, corrected_rd]))
         print('Saving normalized read depth to file %s'%output_file)
-        df.output_to_file(output_ndarray, output_file)
+        func.output_to_file(output_ndarray, output_file)
         #df.output_to_file(parameterList, output_parameter_file)
 
+def reference_selection(args):
+    project_path   = str(args.project_path) 
+    norm_list_file = str(args.norm_list)
+    num_ref        = int(args.num_ref)
+    corr_threshold = float(args.corr_threshold)
+    
+    num = 0
+    combined_list = []
+    sampleID_list = []
+    
+    # Import samples
+    sample_norm_rd_list = func.fileToList_tab(norm_list_file)
+    for sample_rd_path in sample_norm_rd_list:
+        sampleID = fetch_sampleID_from_filepath(sample_rd_path)
+        sample_rd_file = sample_rd_path[0]
+        num += 1
+        if num % 10 == 0:
+            func.showDateTime('\t')
+            print("Importing No.%d sample:%s from %s"%(num, sampleID, sample_rd_file))
+        rd_df = fetch_norm_rd(sampleID, sample_rd_file)
+        combined_list.append(rd_df.to_numpy())
+        sampleID_list.append(sampleID)
+
+    combined_np_array = np.hstack(combined_list) # convert to nparray to accelerate the speed.
+    combined_df = pd.DataFrame(combined_np_array,columns=sampleID_list)
+
+    # Calculate correlation coefficient for read depth matrix
+    print("Calculate correlation coefficient for read depth matrix ...")
+    corrMatrix = pd.DataFrame(np.corrcoef(combined_np_array, rowvar=False), columns=sampleID_list)
+    sampleID_str = '\t'.join([sampleID for sampleID in sampleID_list])
+
+    corr_matrix_file = project_path+'/correlation_matrix.txt'
+    np.savetxt(corr_matrix_file,corrMatrix, delimiter="\t", header=sampleID_str, comments='')
+
+    # Select reference samples
+    for case_sampleID in sampleID_list:
+        ref_sample_list = []
+
+        print("For case sampleID:", case_sampleID)
+        ref_sample_df = corrMatrix[case_sampleID].sort_values(ascending=False)
+        ref_sample_size = min(num_ref,len(corrMatrix))
+        for i in range(1,ref_sample_size):
+            ref_sampleID = sampleID_list[ref_sample_df.index[i]]
+            ref_sample_corr = ref_sample_df.iloc[i]
+            if ref_sample_corr >= corr_threshold:
+                ref_sample_list.append([ref_sampleID, ref_sample_corr])
+
+        output_ref_file = project_path + '/ref_samples/'+case_sampleID+'.ref.samples.txt'
+        func.output_to_file(ref_sample_list, output_ref_file)
 
 parser = argparse.ArgumentParser(prog='cnv_espresso', description='Validate CNVs in silico')
 subparsers = parser.add_subparsers()
@@ -132,7 +183,7 @@ subparsers = parser.add_subparsers()
 #svd_parser.add_argument('--output', required=True, help='Directory for RPKM files')
 #svd_parser.set_defaults(func=bamlist2RPKM)
 #
-#normalize read depth signal
+#Normalize read depth signal
 svd_parser = subparsers.add_parser('normalization', help="GC correction, zscore by negative distribution for a given sample")
 svd_parser.add_argument('--windows', required=True, help='Please input the target information including GC content')
 svd_parser.add_argument('--input', required=False, help='Please input a read depth file for a given sample')
@@ -141,12 +192,13 @@ svd_parser.add_argument('--output', required=False, help='Output folder for norm
 svd_parser.add_argument('--debug', required=False, default=False,  help='Output folder for normalized read depth files')
 svd_parser.set_defaults(func=normalization)
 
-##RPKM files -> Matrix
-#svd_parser = subparsers.add_parser('merge_rpkm', help="Merge RPKM files to a matrix")
-#svd_parser.add_argument('--rpkm_dir', required=True, help='RPKM files')
-#svd_parser.add_argument('--target', required=True, help='Target definition file')
-#svd_parser.add_argument('--output', required=False, help='Matrix file')
-#svd_parser.set_defaults(func=RPKM2Matrix)
+#Select reference samples
+ref_parser = subparsers.add_parser('reference', help="Calculate the correlation matrix and select references")
+ref_parser.add_argument('--project_path', required=True, help='Project folder')
+ref_parser.add_argument('--norm_list', required=True, help='Normlized read depth file list')
+ref_parser.add_argument('--num_ref', required=False, default=100, help='Number of reference samples')
+ref_parser.add_argument('--corr_threshold', required=False, default=70, help='The mininum Pearson correlation threshold for reference samples')
+ref_parser.set_defaults(func=reference_selection)
 #
 ## Filter matrix by GC content, mapping ability and exon length
 #svd_parser = subparsers.add_parser('filter', help="Filter matrix by GC content, mapping ability and exon length")

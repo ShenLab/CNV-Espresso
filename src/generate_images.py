@@ -20,6 +20,7 @@ SAMPLE      = ['SAMPLE','sample_ID','ID']
 CNV_CHR     = ['chr', 'CHR', 'CHROMOSOME', 'chromosome','Chr']
 CNV_START   = ['cnv_start', 'start', 'PRED_START', 'START','Start']
 CNV_END     = ['cnv_stop', 'stop', 'PRED_END', 'END','End']
+CNV_INTERVAL= ['INTERVAL','CNV_INTERVAL']
 CNV_TYPE    = ['cnv_type','type','TYPE','CNV', 'CNV_TYPE']
 NUM_TARGETS = ['NUM_TARGETS','targets']
 GSD_LABEL   = ['LABEL_VAL','label','LABEL','GSD_info']
@@ -34,39 +35,17 @@ RD_norm_dir     = sys.argv[1]
 ref_samples_dir = sys.argv[2]
 cnv_file        = sys.argv[3] 
 output_path     = sys.argv[4]
+corr_threshold  = float(sys.argv[5])
 try:
-    sge_task_id = int(sys.argv[5])
+    sge_task_id = int(sys.argv[6])
 except:
     sge_task_id = 'all'
 
 ## Output files and folders
-
-#output_false_del_image_dir  = output_path + '/false_del/'
-#output_false_del_image_splits_dir = output_path + '/false_del_splits/'
-#
-#output_false_dup_image_dir  = output_path + '/false_dup/'
-#output_false_dup_image_splits_dir = output_path + '/false_dup_splits/'
-#
-#output_true_del_image_dir  = output_path + '/true_del/'
-#output_true_del_image_splits_dir = output_path + '/true_del_splits/'
-#
-#output_true_dup_image_dir  = output_path + '/true_dup/'
-#output_true_dup_image_splits_dir = output_path + '/true_dup_splits/'
-#
-#os.makedirs(output_false_del_image_dir, exist_ok=True)
-#os.makedirs(output_false_dup_image_dir, exist_ok=True)
-#os.makedirs(output_true_del_image_dir,  exist_ok=True)
-#os.makedirs(output_true_dup_image_dir,  exist_ok=True)
-#os.makedirs(output_false_del_image_splits_dir, exist_ok=True)
-#os.makedirs(output_false_dup_image_splits_dir, exist_ok=True)
-#os.makedirs(output_true_del_image_splits_dir , exist_ok=True)
-#os.makedirs(output_true_dup_image_splits_dir , exist_ok=True)
-#
 output_EntireCNV_image_dir  = output_path + '/entire_cnvs/'
 output_SplitCNV_image_dir   = output_path + '/split_cnvs/'
 os.makedirs(output_EntireCNV_image_dir,  exist_ok=True)
 os.makedirs(output_SplitCNV_image_dir,   exist_ok=True)
-
 
 ## CNV info
 cnv_data_df = pd.read_table(cnv_file, header=0, sep=r'\,|\t', engine='python')
@@ -98,16 +77,18 @@ def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixe
     RD_fetched_df[["RD_norm"]] = RD_fetched_df[["RD_norm"]].astype(float)
     return RD_fetched_df
 
-def loadRefSamplesID(ref_samples_file):
+def loadRefSamplesID(ref_samples_file, corr_threshold):
     ref_samplesID_df = pd.read_table(ref_samples_file,
                                         #low_memory=False,
                                         header=None, sep=' |\t', engine='python',
                                         names=['sampleID', 'r2'])
-    return ref_samplesID_df
+    # filter by r^2
+    result_df = ref_samplesID_df[ref_samplesID_df['r2']>=corr_threshold]
+    return result_df
 
-def fetchRefRDdata_byTabix(ref_samples_file, cnv_chr, cnv_start, cnv_end, fixed_win_num):
+def fetchRefRDdata_byTabix(ref_samples_file, cnv_chr, cnv_start, cnv_end, fixed_win_num, corr_threshold):
     # load reference sample ID
-    ref_samplesID_df = loadRefSamplesID(ref_samples_file)
+    ref_samplesID_df = loadRefSamplesID(ref_samples_file, corr_threshold)
     # load RD normalized data and fetch RD given the cnv region for each reference sample
     reference_RD_df = pd.DataFrame(columns=['chr', 'start', 'end', 'GC', 'RD_raw', 'RD_norm', 'sample'])
     for index, row in ref_samplesID_df.iterrows():  
@@ -156,43 +137,54 @@ def fetch_relative_file_path(RD_norm_dir, sampleID, suffix):
 ## Parse header
 cnv_data_header = cnv_data_df.columns.tolist()
 col_sampleID  = cnv_data_header.index(fetch_colName(cnv_data_header,SAMPLE))
-col_cnv_chr   = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_CHR))
-col_cnv_start = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_START))
-col_cnv_end   = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_END))
+try:
+    col_cnv_interval = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_INTERVAL))
+except:
+    col_cnv_chr   = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_CHR))
+    col_cnv_start = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_START))
+    col_cnv_end   = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_END))
+
 col_cnv_type  = cnv_data_header.index(fetch_colName(cnv_data_header,CNV_TYPE))
 try:
-    col_cnv_num_targets = cnv_data_header.index(fetch_colName(cnv_data_header,NUM_TARGETS))
+    col_cnv_num_targets = cnv_data_header.index(fetch_colName(cnv_data_header,['NUM_TARGETS','NUM_TARG']))
 except:
+    col_cnv_num_targets = None
     pass
 
 try:
     col_cnv_canoes= cnv_data_header.index(fetch_colName(cnv_data_header,['CANOES','CANOES_RT']))
 except:
+    col_cnv_canoes = None
     pass
 
 try:
     col_cnv_xhmm  = cnv_data_header.index(fetch_colName(cnv_data_header,['XHMM','XHMM_RT']))
 except:
+    col_cnv_xhmm = None
     pass
 
 try:
     col_cnv_clamms= cnv_data_header.index(fetch_colName(cnv_data_header,['CLAMMS','CLAMMS_RT']))
 except:
+    col_cnv_clamms = None
     pass
 
 try:
     col_cnv_numCarriers = cnv_data_header.index(fetch_colName(cnv_data_header,['Num_Carriers(inGivenCohort)']))
 except:
+    col_cnv_numCarriers = None
     pass
 
 try:
     col_GSD_label = cnv_data_header.index(fetch_colName(cnv_data_header,GSD_LABEL))
 except:
+    col_GSD_label = None
     pass
 
 try:
     col_PRE_label = cnv_data_header.index(fetch_colName(cnv_data_header, PRE_LABEL))
 except:
+    col_PRE_label = None
     pass
 
 #for index, row in cnv_data_df.iterrows(): 
@@ -204,9 +196,13 @@ index = sge_task_id-1
 row   = cnv_data_df.iloc[index]
 
 sampleID  = row[col_sampleID]
-cnv_chr   = row[col_cnv_chr]
-cnv_start = int(row[col_cnv_start])
-cnv_end   = int(row[col_cnv_end])
+try:
+    cnv_interval = row[col_cnv_interval]
+    cnv_chr, cnv_start, cnv_end = df.parseInterval(cnv_interval) 
+except:
+    cnv_chr   = row[col_cnv_chr]
+    cnv_start = int(row[col_cnv_start])
+    cnv_end   = int(row[col_cnv_end])
 cnv_type  = row[col_cnv_type]
 
 if cnv_type == 1:
@@ -218,13 +214,40 @@ else:
 
 case_sample_color = color_del if cnv_type == 'DEL' else color_dup
 
-cnv_num_targets   = df.try_except(row[col_cnv_num_targets], 'NA')
-cnv_canoes        = df.try_except(str(row[col_cnv_canoes]), 'NA')
-cnv_xhmm          = df.try_except(str(row[col_cnv_xhmm]), 'NA')
-cnv_clamms        = df.try_except(str(row[col_cnv_clamms]), 'NA')
-cnv_num_carriers  = df.try_except(str(row[col_cnv_numCarriers]), 'NA')
-cnv_gsd_label     = df.try_except(row[col_GSD_label], 'NA')
-cnv_CNLearn_label = df.try_except(row[col_PRE_label], 'NA')
+try:
+    cnv_num_targets = row[col_cnv_num_targets]
+except:
+    cnv_num_targets =  'NA'
+    
+try:
+    cnv_canoes = str(row[col_cnv_canoes])
+except:
+    cnv_canoes = 'NA'
+
+try:    
+    cnv_xhmm = str(row[col_cnv_xhmm])
+except:
+    cnv_xhmm = 'NA'
+
+try:
+    cnv_clamms = str(row[col_cnv_clamms])
+except:
+    cnv_clamms = 'NA'
+
+try:
+    cnv_num_carriers = str(row[col_cnv_numCarriers])
+except:
+    cnv_num_carriers = 'NA'
+
+try:    
+    cnv_gsd_label = row[col_GSD_label]
+except:
+    cnv_gsd_label = 'NA'
+
+try:    
+    cnv_CNLearn_label = row[col_PRE_label]
+except:
+    cnv_CNLearn_label = 'NA'
 
 if cnv_gsd_label == 'NA':
     cnv_gsd_str = 'NA'
@@ -256,7 +279,7 @@ ref_samples_file = fetch_relative_file_path(ref_samples_dir, sampleID,'txt')
 if not os.path.exists(ref_samples_file):
     print("    -[Error]: error in reference samples related file for %s in %s"%(sampleID, ref_samples_dir))
     exit(0)
-reference_RD_df = fetchRefRDdata_byTabix(ref_samples_file, cnv_chr, cnv_start, cnv_end, fixed_win_num)
+reference_RD_df = fetchRefRDdata_byTabix(ref_samples_file, cnv_chr, cnv_start, cnv_end, fixed_win_num, corr_threshold)
     
 ## plot whole cnv
 print("  --Step3. Illustrating an image for the whole CNV ...")
@@ -284,38 +307,6 @@ ax_rd.plot((RD_cnv_region_df["start"]+RD_cnv_region_df["end"])/2, RD_cnv_region_
 ax_rd.set_title(title_info)
 plt.savefig(output_EntireCNV_image_dir+image_file)
 plt.close() 
-
-### plot split CNV for each three targets
-#print("  --Step4. Illustrating images for the CNV splited by each %d windows ..."%fixed_win_num)
-#split_cnv_path_list = []
-#for group_id in np.unique(RD_cnv_region['fixed_win_num']):
-#    ## if targets equal to required number (3 by default)
-#    if len(RD_cnv_region[RD_cnv_region['fixed_win_num']==group_id]) == fixed_win_num:
-#        title_split_info = title_info +" Group:"+ str(int(len(RD_cnv_region)/fixed_win_num))+ \
-#                           "-"+ str(group_id)
-#                           
-#        image_split_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+ \
-#                str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_label_str+"_"+cnv_type+ \
-#                "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region))+ \
-#                "wins_splits"+str(int(len(RD_cnv_region)/fixed_win_num))+"_"+ str(group_id) +".png"
-#
-#        fig = plt.figure(dpi=150,figsize=(7, 7)) 
-#        ax_rd = fig.subplots(nrows=1, ncols=1)
-#
-#        RD_cnv_region_split = RD_cnv_region[RD_cnv_region["fixed_win_num"]==group_id]
-#        reference_RD_df_split = reference_RD_df[reference_RD_df["fixed_win_num"]==group_id]
-#        # plot reference samples
-#        for sample_reader in reference_RD_df_split["sample"].unique():
-#            ref_sample_df = reference_RD_df_split[reference_RD_df_split["sample"]==sample_reader]
-#            ax_rd.plot((ref_sample_df["start"]+ref_sample_df["end"])/2, ref_sample_df["RD_norm"], color = 'grey', marker='.', linewidth=0.2)
-#        # plot case sample
-#        ax_rd.plot((RD_cnv_region_split["start"]+RD_cnv_region_split["end"])/2, RD_cnv_region_split["RD_norm"],
-#                color=case_sample_color, marker='o', linewidth=2)
-#        ax_rd.set_title(title_split_info)
-#        plt.savefig(output_SplitCNV_image_dir+image_split_file)
-#        plt.close()
-#        split_cnv_path_list.append(output_SplitCNV_image_dir+image_split_file)
-#print("  --[Done]. Images have output to %s and %s."%(output_SplitCNV_image_dir+image_file, output_SplitCNV_image_dir))
 
 ## plot split CNV for each three targets
 print("  --Step4. Illustrating images for the CNV splited by each %d windows ..."%fixed_win_num)

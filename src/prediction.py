@@ -16,25 +16,31 @@ import pandas as pd
 import PIL
 import numpy as np
 from matplotlib import pyplot as plt
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_curve
-from sklearn.metrics import auc
-import sklearn
+#from sklearn.model_selection import train_test_split
+#from sklearn.metrics import roc_curve
+#from sklearn.metrics import auc
+#import sklearn
 import keras
-import keras.preprocessing
-from keras.models import Sequential
-from keras.utils import to_categorical
-from keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten
+#import keras.preprocessing
+#from keras.models import Sequential
+#from keras.utils import to_categorical
+#from keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten
 from keras.models import load_model
-from keras.callbacks import EarlyStopping
-from keras.callbacks import ModelCheckpoint
+#from keras.callbacks import EarlyStopping
+#from keras.callbacks import ModelCheckpoint
 
 import function as func
 import function_dl as func_dl
 
-# GPU selection
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
-physical_devices = tf.config.experimental.list_physical_devices('GPU') 
+cuda_available = tf.test.is_built_with_cuda()
+gpu_availabel  = tf.config.list_physical_devices('GPU')
+
+# GPU or CPU selection
+os.environ['CUDA_VISIBLE_DEVICES'] = "-1"
+if cuda_available and gpu_availabel:
+    physical_devices = tf.config.experimental.list_physical_devices('GPU') 
+else:
+    physical_devices = tf.config.experimental.list_physical_devices('CPU')
 
 # Variables
 cnv_info_file = sys.argv[1]
@@ -46,7 +52,8 @@ img_width, img_height = 224, 224
 # Loading CNV_info and images. 
 cnv_info_df   = pd.read_csv(cnv_info_file)
 entire_cnv_images_path_list  = cnv_info_df['entire_cnv_path']
-
+CNV_TYPE_list = func.global_variables()['CNV_TYPE']
+CNV_TYPE      = func.fetch_colName(cnv_info_df.head(),CNV_TYPE_list)[1]
 img_np = func_dl.loadImgs(entire_cnv_images_path_list, img_width, img_height)
 
 # ## Normalization
@@ -102,7 +109,7 @@ for i in range(len(img_pred)):
     else:
         pdb.set_trace()
         
-    if pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] == pred_output_df.iloc[i,pred_output_df.columns.get_loc('TYPE')]:
+    if pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] == pred_output_df.iloc[i,pred_output_df.columns.get_loc(CNV_TYPE)]:
         pred_output_df.iloc[i,pred_output_df.columns.get_loc('Status')] = "Positive"
     else:
         pred_output_df.iloc[i,pred_output_df.columns.get_loc('Status')] = "Negative"
