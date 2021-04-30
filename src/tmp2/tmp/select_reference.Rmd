@@ -1,0 +1,97 @@
+---
+title: "Select reference samples by correlation matrix from CANOES results."
+output: html_notebook
+TODO: This script should be replaced by self-made python function, which need to calculate correlation coefficient for each pair samples.
+---
+
+*Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+*Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+*Preview* button or press *Cmd+Shift+K* to preview the HTML file.
+
+```{r}
+# sample and batch info
+sample_batch_file <- '/Users/rtan/terra_rt2776/SPARK/CANOES/0-RC/spark_27270_by10Groups/spark_w_batch.list'
+sample_batch_info <- read.table(file=sample_batch_file)
+
+# CANOES correlate coefficient info
+canoes_cov_dir <- '/Users/rtan/terra_rt2776/SPARK/CANOES/0-RC/spark_merged_RC/'
+load(paste0(canoes_cov_dir,'cov.cons_canoes_reads_spark1'))
+canoes_cov_spark1 <- covariance
+load(paste0(canoes_cov_dir,'cov.cons_canoes_reads_spark2'))
+canoes_cov_spark2 <- covariance
+load(paste0(canoes_cov_dir,'cov.cons_canoes_reads_spark3'))
+canoes_cov_spark3 <- covariance
+load(paste0(canoes_cov_dir,'cov.cons_canoes_reads_spark4'))
+canoes_cov_spark4 <- covariance
+load(paste0(canoes_cov_dir,'cov.cons_canoes_reads_spark5'))
+canoes_cov_spark5 <- covariance
+load(paste0(canoes_cov_dir,'cov.cons_canoes_reads_spark6'))
+canoes_cov_spark6 <- covariance
+load(paste0(canoes_cov_dir,'cov.cons_canoes_reads_spark7'))
+canoes_cov_spark7 <- covariance
+load(paste0(canoes_cov_dir,'cov.cons_canoes_reads_spark8'))
+canoes_cov_spark8 <- covariance
+load(paste0(canoes_cov_dir,'cov.cons_canoes_reads_spark9'))
+canoes_cov_spark9 <- covariance
+load(paste0(canoes_cov_dir,'cov.cons_canoes_reads_spark10'))
+canoes_cov_spark10 <- covariance
+rm(covariance)
+
+# training set info
+training_set_true_df <- read.table('/Users/rtan/terra_rt2776/CNV_Espresso/training_set/training_set_true_rare.txt',header = TRUE)
+training_set_false_df <- read.table('/Users/rtan/terra_rt2776/CNV_Espresso/training_set/training_set_false_rare.txt',header = TRUE)
+traning_set_true_sample <- unique(training_set_true_df$SAMPLE)
+traning_set_false_sample <- unique(training_set_false_df$SAMPLE)
+head(traning_set_true_sample)
+
+# number of reference samples
+numrefs <- 100
+
+# output_dir
+output_dir <- '/Users/rtan/terra_rt2776/CNV_Espresso/reference_samples/'
+sample_not_in_batch <- data.frame()
+```
+
+```{r}
+sample.pool <- traning_set_true_sample
+sample.pool <- traning_set_false_sample
+num <- 0
+for(sample.name in sample.pool) {
+  num <- num + 1
+  print(paste(num, sample.name))
+  if (sample.name %in% sample_batch_info$V1){
+    sample.batch <- sample_batch_info[which(as.character(sample_batch_info$V1) == sample.name),]$V2
+    if(sample.batch=='spark1'){
+      covariance <- canoes_cov_spark1
+    }else if(sample.batch=='spark2'){
+      covariance <- canoes_cov_spark2
+    }else if(sample.batch=='spark3'){
+      covariance <- canoes_cov_spark3
+    }else if(sample.batch=='spark4'){
+      covariance <- canoes_cov_spark4
+    }else if(sample.batch=='spark5'){
+      covariance <- canoes_cov_spark5
+    }else if(sample.batch=='spark6'){
+      covariance <- canoes_cov_spark6
+    }else if(sample.batch=='spark7'){
+      covariance <- canoes_cov_spark7
+    }else if(sample.batch=='spark8'){
+      covariance <- canoes_cov_spark8
+    }else if(sample.batch=='spark9'){
+      covariance <- canoes_cov_spark9
+    }else if(sample.batch=='spark10'){
+      covariance <- canoes_cov_spark10
+    }
+  }else{
+    sample_not_in_batch <-rbind(sample_not_in_batch,sample.name) # doesn't work
+    next
+  }
+  reference.samples <- setdiff(colnames(covariance), sample.name)
+  covariances <- covariance[sample.name, reference.samples]
+  reference.samples <- sort(covariances, decreasing=T)[1:min(numrefs, length(covariances))]
+  result <- data.frame(names(reference.samples), reference.samples)
+  write.table(result,file=paste0(output_dir,sample.name,'.ref.samples.txt'),col.names=FALSE, row.names=FALSE,quote =FALSE)
+}
+
+```
+

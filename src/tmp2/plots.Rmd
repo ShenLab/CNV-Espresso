@@ -1,0 +1,190 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+*Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+*Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+*Preview* button or press *Cmd+Shift+K* to preview the HTML file.
+
+```{r}
+library(ggplot2)
+require(IDPmisc) 
+library(RColorBrewer)
+
+output_dir <- "/Users/rtan/terra_rt2776/CNV_Espresso/images/"
+gc_norm_file <- '/home/rt2776/cnv_espresso/data/norm/SP0044942.cov.bed.gz.normalized_gc'
+gc_norm_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/data/norm/SP0000027.cov.bed.norm.gz'
+gc_norm_df <- read.table(gc_norm_file,col.names = c("CHR", "START", "END", "GC", "RD_raw", "RD_norm"))
+
+
+# create a color palette to use in smoothed scatterplot
+#https://rstudio-pubs-static.s3.amazonaws.com/151690_ac65a180e03641e2adc3cb2ecf6306c3.html
+buylrd = c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF",
+           "#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026") 
+myColRamp = colorRampPalette(c(buylrd))
+
+```
+
+
+```{r}
+# smoothed scatterplot
+pdf(file = "./GC_normlization_before.pdf")
+smoothScatter(x=gc_norm_df$GC,gc_norm_df$RD_raw,
+              colramp=myColRamp,
+              main="Before GC content normalization",
+              xlab="GC content",
+              ylab="Raw read depth",
+              cex.main=1.5,
+              cex.axis=1.5,
+              cex.lab=1.5
+              )
+dev.off()
+```
+
+```{r}
+pdf(file = "./GC_normlization_after.pdf")
+smoothScatter(x=gc_norm_df$GC,gc_norm_df$RD_norm,
+              colramp=myColRamp,
+              main="After GC content normalization",
+              xlab="GC content",
+              ylab="Normalized read depth",
+              cex.main=1.5,
+              cex.axis=1.5,
+              cex.lab=1.5
+              )
+dev.off()
+```
+
+#-----------------------------------------------------------------------------------------------
+#Illustrate CNVs
+```{r}
+library(ggplot2)
+library(gridExtra)
+target_sample <- 'SP0000027'
+ref_samples <- read.table('/Users/rtan/terra_rt2776/CNV_Espresso/data/ref/SP0000027.ref')
+target_sample_rd <- read.table(paste('/Users/rtan/terra_rt2776/CNV_Espresso/data/norm/',target_sample,'.cov.bed.norm',sep=''),
+                                header=F, col.names=c("CHR", "START", "END", "GC", "RD_raw", "RD_norm"))
+
+cnv_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/data/label/validated_xhmm_canoes_clamms_true_cnvs.txt'
+cnv_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/data/label/validated_xhmm_canoes_clamms_false_cnvs.txt'
+Cnvtab <- read.table(gzfile(cnv_file), header=F, col.names=c("CHR", "START", "END", "TYPE", "LENGTH", "SAMPLE", "LABEL", "TOOL"))
+```
+## take referencce samples
+```{r}
+Sig <- target_sample_rd
+```
+
+```{r}
+Cnvtab_selected <- Cnvtab[which(Cnvtab$SAMPLE==target_sample),]
+for(II in seq(1,nrow(Cnvtab_selected))) {
+    II <- 1
+    CNV<-Cnvtab_selected[II,]
+    #SigDF<-subset(Sig, CHR==CNV$CHR & END>CNV$START_EXT & START<CNV$END_EXT)
+    RD_df<-subset(Sig, CHR==CNV$CHR & END>CNV$START & START<CNV$END)
+
+    PLOT <- ggplot(RD_df, aes(x=(START+END)/2, y=(RD_norm))) +
+        geom_point(color="purple", shape=1, size=2) +
+        geom_line(aes( x=(START+END)/2, y=(RD_norm ), color= "red"))
+    
+    for(ref_sample in ref_samples[1:10,1]){
+        print(ref_sample)
+        ref_sample_rd <- read.table(paste('/Users/rtan/terra_rt2776/CNV_Espresso/data/norm/',ref_sample,'.cov.bed.norm',sep=''),
+                                header=F, col.names=c("CHR", "START", "END", "GC", "RD_raw", "RD_norm"))
+        REF_RD_df<-subset(ref_sample_rd, CHR==CNV$CHR & END>CNV$START & START<CNV$END)
+        PLOT <- PLOT + geom_point(color="black", shape=1, size=2, data=REF_RD_df) +
+        geom_line(color= "grey30",size=0.2,data=REF_RD_df)
+    }
+    PLOT
+    
+    ggsave(paste0(output_dir, "/", CNV$SAMPLE,"_",CNV$CHR,"_",CNV$START,"-",CNV$END,"_",CNV$LABEL,".png"), PLOT, width=7, height=4, unit="in")
+
+}
+```
+
+## Illustrating results
+```{r}
+library(ggplot2)
+```
+
+```{r}
+rare_del_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/images_rare/data_backup/rare_del_entire_cnv_info.csv'
+rare_del_df <- read.csv(rare_del_file,header = TRUE)
+```
+
+```{r}
+rare_del_df
+```
+
+```{r}
+d<-ggplot(rare_del_df,aes(Num_Targets_Wins))
+d+geom_bar(fill="darkgreen")+
+theme(text = element_text(size=18), axis.text.x = element_text(angle=45, hjust=1))
+        
+```
+
+```{r}
+d<-ggplot(rare_del_df,aes(SIZE_LABEL))
+d+geom_bar(fill="darkgreen",color="black")+
+theme(text = element_text(size=18),
+        axis.text.x = element_text(angle=45, hjust=1))
+```
+
+```{r}
+pred_rare_del_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/output/del_test_predict_info.csv'
+pred_rare_del_df <- read.csv(pred_rare_del_file,header = TRUE)
+pred_rare_del_df
+```
+```{r}
+d<-ggplot(pred_rare_del_df,aes(SIZE_LABEL, fill=Pred_status))
+d+geom_bar(color="black")+
+scale_fill_manual(values=c('#999999','#E69F00'))+
+geom_text(stat='count',aes(label=..count..), color="white", size=3.5,position=position_stack(0.5))+
+theme(text = element_text(size=18),
+        axis.text.x = element_text(angle=45, hjust=1))
+```
+
+```{r}
+pred_rare_del_df$WIN_SIZE_LABEL <- factor(pred_rare_del_df$WIN_SIZE_LABEL,level=c(2,3,4,5,6,7,8,9,10,'11 to 20','21 to 30','31 to 50','51 to 100'))
+d<-ggplot(pred_rare_del_df,aes(WIN_SIZE_LABEL, fill=Pred_status))
+d+geom_bar(color="black")+
+scale_fill_manual(values=c('#999999','#E69F00'))+
+geom_text(stat='count',aes(label=..count..), color="white", size=3.5,position=position_stack(0.5))+
+theme(text = element_text(size=18),
+        axis.text.x = element_text(angle=45, hjust=1))
+```
+
+```{r}
+rare_dup_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/images_rare/data_backup/rare_entire_dup_info.csv'
+rare_dup_df <- read.csv(rare_dup_file,header = TRUE)
+```
+```{r}
+d<-ggplot(rare_dup_df,aes(SIZE_LABEL))
+d+geom_bar(fill="darkred",color="black")+
+theme(text = element_text(size=18),
+        axis.text.x = element_text(angle=45, hjust=1))
+```
+```{r}
+pred_rare_dup_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/output/rare_entire_dup_test_predict_info.csv'
+pred_rare_dup_df <- read.csv(pred_rare_dup_file,header = TRUE)
+pred_rare_dup_df
+```
+
+```{r}
+d<-ggplot(pred_rare_dup_df,aes(SIZE_LABEL, fill=Pred_status))
+d+geom_bar(color="black")+
+scale_fill_manual(values=c('#999999','#E69F00'))+
+geom_text(stat='count',aes(label=..count..), color="white", size=3.5,position=position_stack(0.5))+
+theme(text = element_text(size=18),
+        axis.text.x = element_text(angle=45, hjust=1))
+```
+```{r}
+pred_rare_dup_df$WIN_SIZE_LABEL <- factor(pred_rare_dup_df$WIN_SIZE_LABEL,level=c(2,3,4,5,6,7,8,9,10,'11 to 20','21 to 30','31 to 50','51 to 100'))
+d<-ggplot(pred_rare_dup_df,aes(WIN_SIZE_LABEL, fill=Pred_status))
+d+geom_bar(color="black")+
+scale_fill_manual(values=c('#999999','#E69F00'))+
+geom_text(stat='count',aes(label=..count..), color="white", size=3.5,position=position_stack(0.5))+
+theme(text = element_text(size=18),
+        axis.text.x = element_text(angle=45, hjust=1))
+```
+
