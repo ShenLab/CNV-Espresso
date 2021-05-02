@@ -1,21 +1,14 @@
 # _CNV Espresso_
 #### A tool designed for validating **C**opy **N**umber **V**ariants from **E**xome **S**equencing **PRE**diction**S** in **S**ilic**O**
 
-#### Step 0. Configure the path
-```
-GATK_SW_DIR
-TARGET_PROBES
-REF_GENOME
-
-PROJECT_DIR='/home/rt2776/1000GP/3_cnv_espresso_BI/'
-SCRIPTS_DIR='/home/rt2776/cnv_espresso/src/'
-CNV_TOOLKIT_DIR='/home/rt2776/cnv_toolkit/scripts/'
-OUTPUT_DIR=${PROJECT_DIR}'result/NormReadCountRatio/'
-cd ${PROJECT_DIR}
-
-```
-##--------------------------------------------------------------------------------------------------------------##
 ## How to run
+### Step 0. Configure the path
+    script_dir='/home/rt2776/cnv_espresso/src/'
+    project_dir='/home/rt2776/cnv_espresso/project4_method_development'
+    target_file='/home/rt2776/source/capture_kits/20130108.exome.targets.bed'
+    reference_file='/home/rt2776/source/references/human_g1k_v37.fasta'
+    cd ${project_dir}
+
 ### Step 1. Calculate Read depth for each sample
     Mosdepth
 
@@ -23,7 +16,7 @@ cd ${PROJECT_DIR}
     python ${script_dir}cnv_espresso.py windows \
         --target ${target_file} \
         --ref    ${reference_file} \
-        --output ${output_dir}
+        --output ${project_dir}
 
 ### Step 3. GC normalization
     sort -k1,1V -k2,2n windows.bed >windows_sort.bed
@@ -40,7 +33,8 @@ cd ${PROJECT_DIR}
         --input_list /home/rt2776/1000GP/3_cnv_espresso_BI/sample_cov.list \
         --output /home/rt2776/1000GP/3_cnv_espresso_BI/norm
 
-# TODO: need to include the function below into the python script.
+    ^ TODO: need to include the function below into the python script.
+    
     num=0
     for file_name in *.norm;
     do
@@ -98,24 +92,13 @@ cd ${PROJECT_DIR}
 
 
 ## predictions
-## To better analysis the prediction results, we need to annotate 1)batch info; 2)num_of_windows; 3)CNV frequency. 
-## Note: those CNV calls were generated from both WES and Array data. Therefore, it is normal for CNVs with 0 target.
-## This step is best run on a GPU machine. 
+To better analysis the prediction results, we need to annotate 1)batch info; 2)num_of_windows; 3)CNV frequency. 
+Note: those CNV calls were generated from both WES and Array data. Therefore, it is normal for CNVs with 0 target.
+This step is best run on a GPU machine. 
+
     cnv_w_image_file='/home/rt2776/1000GP/3_cnv_espresso_BI/images_ref70_flanking/xhmm_NA12878_withImagePath.csv'
     model_file='/home/rt2776/cnv_espresso/images_rare_3classes/data_backup/model_h5/rare_entire_cnv_MobileNet_v1_fine-tuning_3classes.h5'
     output_file='/home/rt2776/1000GP/3_cnv_espresso_BI/cnv_espresso_prediction_ref70_flanking.csv'
     python /home/rt2776/cnv_espresso/src/prediction.py \
         ${cnv_w_image_file} ${model_file} ${output_file}
 
-##--------------------------------------------------------------------------------------------------------------##
-## Step 7. Analysis
-# annotate with GSD
-    python /home/rt2776/cnv_toolkit/scripts/5_annotation.py gsd \
-        --input /home/rt2776/1000GP/3_cnv_espresso_BI/cnv_espresso_prediction.csv \
-        --gsd /home/rt2776/1000GP/data/gsd/GSD_NA12878_exome.txt \
-        --output /home/rt2776/1000GP/3_cnv_espresso_BI/cnv_espresso_pred_gsd.txt
-
-    python /home/rt2776/cnv_toolkit/scripts/5_annotation.py gnomad \
-        --input /home/rt2776/1000GP/cnv_espresso/cnv_espresso_prediction.csv \ 
-        --ref hg19 \
-        --output /home/rt2776/1000GP/cnv_espresso/cnv_espresso_pred_gnmad.txt 

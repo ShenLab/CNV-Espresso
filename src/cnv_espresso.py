@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sn
+from windows import *
 
 # Functions
 def fetch_norm_rd(sampleID, sample_norm_file):
@@ -29,6 +30,10 @@ def fetch_sampleID_from_filepath(filepath):
 
 
 # Main functions
+def windows(args):
+    print('Building windows.bed ...')
+    build_windows(args.target, args.ref, args.output)
+
 def normalization(args): 
     windows_file = str(args.windows)
     debug_flag   = args.debug
@@ -175,14 +180,13 @@ def reference_selection(args):
 parser = argparse.ArgumentParser(prog='cnv_espresso', description='Validate CNVs in silico')
 subparsers = parser.add_subparsers()
 
-##BAM List -> RPKM
-#svd_parser = subparsers.add_parser('rpkm', help="Create RPKM matrix from a BAM list")
-#svd_parser.add_argument('--target', required=True, help='Target definition file')
-#svd_parser.add_argument('--maq', required=False, type=int, default=20, help='MAQ threshold')
-#svd_parser.add_argument('--input', required=True, help='BAM file list, each line for each sample')
-#svd_parser.add_argument('--output', required=True, help='Directory for RPKM files')
-#svd_parser.set_defaults(func=bamlist2RPKM)
-#
+## Transform target probe file to windows.bed and annotate GC content.
+win_parser = subparsers.add_parser('windows', help="Build windows.bed file")
+win_parser.add_argument('--target', required=True, help='Target probe file')
+win_parser.add_argument('--ref', required=True, help='Reference file')
+win_parser.add_argument('--output', required=True, help='Directory for windows.bed file')
+win_parser.set_defaults(func=windows)
+
 #Normalize read depth signal
 svd_parser = subparsers.add_parser('normalization', help="GC correction, zscore by negative distribution for a given sample")
 svd_parser.add_argument('--windows', required=True, help='Please input the target information including GC content')
@@ -199,7 +203,7 @@ ref_parser.add_argument('--norm_list', required=True, help='Normlized read depth
 ref_parser.add_argument('--num_ref', required=False, default=100, help='Number of reference samples')
 ref_parser.add_argument('--corr_threshold', required=False, default=70, help='The mininum Pearson correlation threshold for reference samples')
 ref_parser.set_defaults(func=reference_selection)
-#
+
 ## Filter matrix by GC content, mapping ability and exon length
 #svd_parser = subparsers.add_parser('filter', help="Filter matrix by GC content, mapping ability and exon length")
 #svd_parser.add_argument('--rpkm_matrix', required=True, help='Matrix of RPKM values')
