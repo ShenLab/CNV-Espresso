@@ -1,11 +1,12 @@
 import os
+import sys
+import pysam 
 import numpy as np
 import function as func
 import pdb
 
 def gc_normalization(windows_file, input_file_list, output_dir, debug_flag):
     print('Loading windows.bed ...')
-    pdb.set_trace()
     #TODO: columns of loadWindows function
     windows_dict = func.loadWindows(windows_file)
     windows_chr  = windows_dict['chr']
@@ -32,6 +33,7 @@ def gc_normalization(windows_file, input_file_list, output_dir, debug_flag):
                 not np.array_equal(input_sample_start, windows_start) or \
                 not np.array_equal(input_sample_stop, windows_stop):
                     print("[Error] The windows file is not consisitant with input sample RD file.")
+                    pdb.set_trace()
                     sys.exit(0)
 
         GC_percentage = np.round(windwos_gc*100)
@@ -71,6 +73,7 @@ def gc_normalization(windows_file, input_file_list, output_dir, debug_flag):
         # Output
         output_ndarray = np.transpose(np.array([input_sample_chr, input_sample_start, input_sample_stop, \
                 GC_percentage, input_sample_rd, corrected_rd]))
-        print('Saving normalized read depth to file %s'%output_file)
+        print('Saving and tabix normalized read depth to file %s.gz'%output_file)
         func.output_to_file(output_ndarray, output_file)                
+        pysam.tabix_index(output_file, preset="bed",force=True)
 

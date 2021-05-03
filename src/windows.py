@@ -50,13 +50,10 @@ def build_windows(target_file, ref_file, output_file):
             win_end   = target_end
             output_list.append([target_chr, win_start, win_end])
         else:
-            win_length = int(target_length/win_num+0.5) 
+            win_length = target_length / win_num 
             for win_i in range(0, win_num):
-                win_start = target_start + win_i*win_length
-                if win_i+1 != win_num:
-                    win_end = target_start + win_i*win_length + win_length
-                else:
-                    win_end = target_end
+                win_start = int(target_start + win_i*win_length)
+                win_end = int(target_start + win_i*win_length + win_length)
                 output_list.append([target_chr, win_start, win_end])
     
     output_gc_list = calculate_gc(output_list, ref_file)

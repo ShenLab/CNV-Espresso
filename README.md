@@ -19,32 +19,19 @@
         --output ${project_dir}
 
 ### Step 3. GC normalization
-    sort -k1,1V -k2,2n windows.bed >windows_sort.bed
-
+    1. Single sample
     python /home/rt2776/cnv_espresso/src/cnv_espresso.py normalization \
-        --windows /home/rt2776/1000GP/3_cnv_espresso_BI/windows_sort.bed \
+        --windows ${project_dir}/windows.bed \ 
         --input /home/rt2776/1000GP/data/RD_clamms/NA12878.cov.bed.gz \ 
-        --output /home/rt2776/1000GP/cnv_espresso/norm
+        --output ${project_dir}'/norm/'
 
-### alternatively, input a list with multiple samples 
-
+    2. Multiple samples (input a simple list) 
     python /home/rt2776/cnv_espresso/src/cnv_espresso.py normalization \
-        --windows /home/rt2776/1000GP/3_cnv_espresso_BI/windows_sort.bed \
-        --input_list /home/rt2776/1000GP/3_cnv_espresso_BI/sample_cov.list \
-        --output /home/rt2776/1000GP/3_cnv_espresso_BI/norm
+        --windows ${project_dir}/windows.bed \ 
+        --input_list ${project_dir}/sample_cov.list \
+        --output ${project_dir}'/norm/'
 
-    ^ TODO: need to include the function below into the python script.
-    
-    num=0
-    for file_name in *.norm;
-    do
-        let "num++"
-        echo -e $num" "${file_name}
-        bgzip -f ${file_name}
-        tabix -p bed ${file_name}.gz
-    done
-
-### by cluster
+    3. Multiple samples process by cluster
     windows_file='/home/rt2776/1000GP/cnv_espresso/windows_sort.bed'
     input_RD_list='/home/rt2776/1000GP/cnv_espresso/sample_rd.list'
     output_dir='/home/rt2776/1000GP/cnv_espresso/norm/'
