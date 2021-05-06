@@ -1,7 +1,7 @@
 # _CNV Espresso_
 #### A tool designed for validating **C**opy **N**umber **V**ariants from **E**xome **S**equencing **PRE**diction**S** in **S**ilic**O**
 
-## How to run
+## Usage
 ### Step 0. Configure the path
     script_dir='/home/rt2776/cnv_espresso/src/'
     project_dir='/home/rt2776/cnv_espresso/project4_method_development'
@@ -20,63 +20,64 @@
 
 ### Step 3. GC normalization
     1. Single sample
-    python /home/rt2776/cnv_espresso/src/cnv_espresso.py normalization \
+    python ${script_dir}cnv_espresso.py normalization \
         --windows ${project_dir}/windows.bed \ 
         --input /home/rt2776/1000GP/data/RD_clamms/NA12878.cov.bed.gz \ 
         --output ${project_dir}'/norm/'
 
     2. Multiple samples (input a simple list) 
-    python /home/rt2776/cnv_espresso/src/cnv_espresso.py normalization \
+    python ${script_dir}cnv_espresso.py normalization \
         --windows ${project_dir}/windows.bed \ 
-        --input_list ${project_dir}/sample_cov.list \
+        --input_list ${project_dir}/sample_raw_rd.list \
         --output ${project_dir}'/norm/'
 
-    3. Multiple samples process by cluster
+    3. Multiple samples process by cluster 
+    ^ TODO: need to test.
     windows_file='/home/rt2776/1000GP/cnv_espresso/windows_sort.bed'
-    input_RD_list='/home/rt2776/1000GP/cnv_espresso/sample_rd.list'
+    input_RD_list='/home/rt2776/1000GP/cnv_espresso/sample_raw_rd.list'
     output_dir='/home/rt2776/1000GP/cnv_espresso/norm/'
     qsub -t 1-90 /home/rt2776/cnv_espresso/src/cluster_gc_norm.sh \
         ${windows_file} ${input_RD_list} ${output_dir} 
 
-### Step 4. Calculate correlation matrix
+### Step 4. Select reference samples
+    ls ${project_dir}/norm/*.gz > ${project_dir}/sample_norm_rd.list
 
-
-
-### Step 5. Select reference samples
-    ls /home/rt2776/1000GP/3_cnv_espresso_BI/norm/*.gz >/home/rt2776/1000GP/3_cnv_espresso_BI/sample_norm_rd.list
-
-    '''
-    /home/rt2776/cnv_espresso/src/select_reference.Rmd
-    /home/rt2776/cnv_espresso/src/select_reference.ipynb (Preivous Prefered, now incorporated into cnv_espresso.py)
-    '''
-
-    python /home/rt2776/cnv_espresso/src/cnv_espresso.py reference \ 
-        --project_path /home/rt2776/1000GP/3_cnv_espresso_BI/ \
-        --norm_list /home/rt2776/1000GP/3_cnv_espresso_BI/sample_norm_rd.list \
+    python ${script_dir}cnv_espresso.py reference \ 
+        --project_dir ${project_dir} \
+        --norm_list ${project_dir}/sample_norm_rd.list \
         --num_ref 100 \
         --corr_threshold -1 
 
+    ^ TODO: This step can show time. it is helpful for other functions.
+
 ### Step 6. Generate images 
+    RD_norm_dir=${project_dir}/norm/
+    ref_samples_dir=${project_dir}/ref_samples/
+    cnv_list=${project_dir}/xhmm.xcnv
+    output_dir=${project_dir}
 
-- Generate a single cnv
-    RD_norm_dir='/home/rt2776/1000GP/3_cnv_espresso_BI/norm/'
-    ref_samples_dir='/home/rt2776/1000GP/3_cnv_espresso_BI/ref_samples/'
-    cnv_list='/home/rt2776/1000GP/3_cnv_espresso_BI/xhmm.xcnv' 
-    output_dir='/home/rt2776/1000GP/3_cnv_espresso_BI/images_ref70_flanking/'
-    corr_threshold=0.70
-    flanking=True
-    python /home/rt2776/cnv_espresso/src/generate_images.py \
-        ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} ${corr_threshold} ${flanking} 1048 1037  1051
+    1. Generate images
+    python ${script_dir}cnv_espresso.py images \
+        --rd_norm_dir ${RD_norm_dir} \
+        --ref_dir ${ref_samples_dir} \
+        --cnv_list ${cnv_list} \
+        --output ${output_dir} \
+        --specific 1048 
 
-    qsub -t 1037-1051 /home/rt2776/cnv_espresso/src/cluster_generate_images.sh \
-        ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} ${corr_threshold} ${flanking}
+    2. Generate images by cluster 
+    ^ Note: you need to modify the script path in the `cluster_generate_images.sh` at first
+
+    qsub -t 1-1505 ${script_dir}cluster_generate_images.sh \
+        ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
+
+    qsub -t 1-15 ${script_dir}cluster_generate_images.sh \
+        ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
 
 ### images check and annotate file name into the cnv file for downstream analysis
     cnv_list='/home/rt2776/1000GP/3_cnv_espresso_BI/xhmm_NA12878.xcnv' 
     output_dir='/home/rt2776/1000GP/3_cnv_espresso_BI/images_ref70_flanking/'
     python /home/rt2776/cnv_espresso/src/generate_images_results_check_annotate.py \
         ${cnv_list} ${output_dir}
-
 
 ## predictions
 To better analysis the prediction results, we need to annotate 1)batch info; 2)num_of_windows; 3)CNV frequency. 
@@ -89,3 +90,8 @@ This step is best run on a GPU machine.
     python /home/rt2776/cnv_espresso/src/prediction.py \
         ${cnv_w_image_file} ${model_file} ${output_file}
 
+## Other functions
+
+### plot read depth before and after GC normlization
+
+### Merge results from multiple CNV callers

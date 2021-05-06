@@ -43,8 +43,8 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     col_GSD_label      = col_dict['col_GSD_label']
     col_PRE_label      = col_dict['col_PRE_label']
 
-    output_EntireCNV_image_dir  = output_path 
-    output_SplitCNV_image_dir   = output_path + '/split_cnvs/'
+    output_EntireCNV_image_dir  = output_path + '/images/' 
+    output_SplitCNV_image_dir   = output_path + '/images_split_cnvs/'
 
 
     sampleID  = row[col_sampleID]

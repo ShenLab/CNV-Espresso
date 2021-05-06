@@ -48,12 +48,11 @@ def normalization(args):
     gc_normalization(windows_file, input_file_list, output_dir, debug_flag)   
 
 def reference(args):
-    project_path   = str(args.project_path) 
+    project_dir    = str(args.project_dir) 
     norm_list_file = str(args.norm_list)
     num_ref        = int(args.num_ref)
     corr_threshold = float(args.corr_threshold)
-    print("new")
-    reference_selection(project_path, norm_list_file, num_ref, corr_threshold)
+    reference_selection(project_dir, norm_list_file, num_ref, corr_threshold)
 
 def images(args):
     RD_norm_dir     = args.rd_norm_dir
