@@ -53,14 +53,14 @@
 ### Step 5. Generate images 
     RD_norm_dir=${project_dir}/norm/
     ref_samples_dir=${project_dir}/ref_samples/
-    cnv_list=${project_dir}/xhmm.xcnv
+    cnv_file=${project_dir}/xhmm.xcnv
     output_dir=${project_dir}
 
     1. Generate images
     python ${script_dir}cnv_espresso.py images \
         --rd_norm_dir ${RD_norm_dir} \
         --ref_dir ${ref_samples_dir} \
-        --cnv_list ${cnv_list} \
+        --cnv_list ${cnv_file} \
         --output ${output_dir} \
         --specific 1048 
 
@@ -70,28 +70,32 @@
     qsub -t 1-1505 ${script_dir}cluster_images.sh \
         ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
 
-    qsub -t 100-115 ${script_dir}cluster_images.sh \
+    qsub -t 20-35 ${script_dir}cluster_images.sh \
         ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
 
-### images check and annotate file name into the cnv file for downstream analysis
-    cnv_list='/home/rt2776/1000GP/3_cnv_espresso_BI/xhmm_NA12878.xcnv' 
-    output_dir='/home/rt2776/1000GP/3_cnv_espresso_BI/images_ref70_flanking/'
-    python /home/rt2776/cnv_espresso/src/generate_images_results_check_annotate.py \
-        ${cnv_list} ${output_dir}
+#### images check and annotate file name into the cnv file for downstream analysis
+#    cnv_list='/home/rt2776/1000GP/3_cnv_espresso_BI/xhmm_NA12878.xcnv' 
+#    output_dir='/home/rt2776/1000GP/3_cnv_espresso_BI/images_ref70_flanking/'
+#    python /home/rt2776/cnv_espresso/src/generate_images_results_check_annotate.py \
+#        ${cnv_list} ${output_dir}
 
-## predictions
-To better analysis the prediction results, we need to annotate 1)batch info; 2)num_of_windows; 3)CNV frequency. 
-Note: those CNV calls were generated from both WES and Array data. Therefore, it is normal for CNVs with 0 target.
-This step is best run on a GPU machine. 
 
-    cnv_w_image_file='/home/rt2776/1000GP/3_cnv_espresso_BI/images_ref70_flanking/xhmm_NA12878_withImagePath.csv'
-    model_file='/home/rt2776/cnv_espresso/images_rare_3classes/data_backup/model_h5/rare_entire_cnv_MobileNet_v1_fine-tuning_3classes.h5'
-    output_file='/home/rt2776/1000GP/3_cnv_espresso_BI/cnv_espresso_prediction_ref70_flanking.csv'
+### Step 6. Training 
+
+### Step 7. Validating CNV predictions in silico 
+    cnv_w_img_file=${project_dir}/cnv_info_w_img.csv
+    model_file='/home/rt2776/cnv_espresso/model/rare_entire_cnv_MobileNet_v1_fine-tuning_3classes.h5'
+    output_file=${project_dir}/cnv_espresso_prediction.csv
+
     python /home/rt2776/cnv_espresso/src/prediction.py \
-        ${cnv_w_image_file} ${model_file} ${output_file}
+        ${cnv_w_img_file} ${model_file} ${output_file}
+
+    python ${script_dir}cnv_espresso.py predict \
+        --cnv_list ${cnv_w_img_file} \
+        --model ${model_file} \
+        --output ${output_file}
 
 ## Other functions
-
 ### plot read depth before and after GC normlization
 
 ### Merge results from multiple CNV callers

@@ -8,6 +8,7 @@ import bz2
 import math
 import pysam
 import sys
+import lockfile
 
 ## Variables
 global_var_dict = func.global_variables()
@@ -26,7 +27,6 @@ color_del, color_dup = (0,0,1), (0,0,1) #blue for three classes labels
 
 def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file, 
                         RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img):
-
     index = sge_task_id-1
     row   = cnv_data_df.iloc[index]
     col_sampleID       = col_dict['col_sampleID']
@@ -101,7 +101,7 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
         figure_left  = cnv_start
         figure_right = cnv_end
 
-    print("Generate CNV %s:%d-%d %s with boundary located at %s:%d-%d"%(cnv_chr, cnv_start, cnv_end, cnv_type, 
+    print(" Generate CNV %s:%d-%d %s with boundary located at %s:%d-%d"%(cnv_chr, cnv_start, cnv_end, cnv_type, 
                                                                         cnv_chr, figure_left, figure_right))
     ## Import RD data info
     print("  --Step1. Fetching RD data for case sample ...")
@@ -153,11 +153,17 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     plt.close()  
     print("  --Step4. Output image file to %s."%(output_EntireCNV_image_dir+image_file))
     ### write the img path to the cnv_file_w_img_file
+    lock_flag = lockfile.LockFile(cnv_info_w_img_file)
+    while lock_flag.is_locked():
+        sleep(0.01)
+    lock_flag.acquire()
     cnv_data_df = pd.read_csv(cnv_info_w_img_file)
     cnv_data_df.loc[index, 'img_path'] = img_path
-    cnv_data_df.to_csv(cnv_info_w_img_file)
+    cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
+    lock_flag.release()
     print("  --Step5. Update the %s with img path."%cnv_info_w_img_file)
     print("  --[Done].")
+
 
     ## plot split CNV for each three targets 
     if split_img == True:
@@ -217,9 +223,14 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
         print("  --[Done]. Images have output to %s and %s."%(output_SplitCNV_image_dir+image_file, output_SplitCNV_image_dir))
 
         ### write the img path to the cnv_file_w_img_file
+        lock_flag = lockfile.LockFile(cnv_info_w_img_file)
+        while lock_flag.is_locked():
+            sleep(0.01)
+        lock_flag.acquire()
         cnv_data_df = pd.read_csv(cnv_info_w_img_file)
         cnv_data_df.loc[index, 'split_cnv_img_path'] = '\n'.join([each_path for each_path in split_cnv_path_list]) 
-        cnv_data_df.to_csv(cnv_info_w_img_file)
+        cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
+        lock_flag.release()
 
 
 def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id):

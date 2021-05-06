@@ -18,6 +18,7 @@ from windows import *
 from normalization import * 
 from reference import *
 from images import *
+from prediction import *
 
 # Main functions
 def windows(args):
@@ -69,6 +70,15 @@ def images(args):
 
     generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id)
 
+def prediction(args):
+    cnv_file    = args.cnv_list
+    model_file  = args.model
+    output_file = args.output
+    use_gpu     = args.use_gpu
+    print("Use GPU:", use_gpu)
+    #TBD: work with CPU
+    cnn_prediction(cnv_file, model_file, use_gpu, output_file)
+
 # Main function
 parser = argparse.ArgumentParser(prog='cnv_espresso', description='Validate CNVs in silico')
 subparsers = parser.add_subparsers()
@@ -109,6 +119,15 @@ img_parser.add_argument('--split', required=False, default=False, help='Generate
 img_parser.add_argument('--specific', required=False, default=False, help='Generate ONE image for a specific CNV in the list file')
 img_parser.set_defaults(func=images)
 
+#Train the CNN model
+
+#Prediction
+pred_parser = subparsers.add_parser('predict', help="Validate CNV predictions by CNN")
+pred_parser.add_argument('--cnv_list', required=True, help='Please input the CNV list for validation')
+pred_parser.add_argument('--model', required=True, help='Please input a trained CNN model file')
+pred_parser.add_argument('--use_gpu', required=False, default=False, help='Predict CNVs by using GPU or CPU')
+pred_parser.add_argument('--output', required=True, help='Output CNV validation results')
+pred_parser.set_defaults(func=prediction)
 
 args = parser.parse_args()
 args.func(args)
