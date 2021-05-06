@@ -10,25 +10,14 @@ import sys
 import time
 import itertools
 from datetime import datetime
-#from ParameterEstimation import *
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sn
 from windows import *
-from normalization import *
-
-# Functions
-def fetch_norm_rd(sampleID, sample_norm_file):
-    df = pd.read_table(sample_norm_file,low_memory=False,header=None, sep='\t',
-                       names=['chr', 'start','end','GC','RD',sampleID])
-    return df[sampleID].to_frame()
-
-def fetch_sampleID_from_filepath(filepath):
-    filepath,tempfilename = os.path.split(filepath[0])
-    sampleID = tempfilename.replace(".cov.bed.norm.gz","")
-    return sampleID
-
+from normalization import * 
+from reference import *
+from images import *
 
 # Main functions
 def windows(args):
@@ -58,56 +47,30 @@ def normalization(args):
 
     gc_normalization(windows_file, input_file_list, output_dir, debug_flag)   
 
-def reference_selection(args):
+def reference(args):
     project_path   = str(args.project_path) 
     norm_list_file = str(args.norm_list)
     num_ref        = int(args.num_ref)
     corr_threshold = float(args.corr_threshold)
-    
-    num = 0
-    combined_list = []
-    sampleID_list = []
-    
-    # Import samples
-    sample_norm_rd_list = func.fileToList_tab(norm_list_file)
-    for sample_rd_path in sample_norm_rd_list:
-        sampleID = fetch_sampleID_from_filepath(sample_rd_path)
-        sample_rd_file = sample_rd_path[0]
-        num += 1
-        if num % 10 == 0:
-            func.showDateTime('\t')
-            print("Importing No.%d sample:%s from %s"%(num, sampleID, sample_rd_file))
-        rd_df = fetch_norm_rd(sampleID, sample_rd_file)
-        combined_list.append(rd_df.to_numpy())
-        sampleID_list.append(sampleID)
+    print("new")
+    reference_selection(project_path, norm_list_file, num_ref, corr_threshold)
 
-    combined_np_array = np.hstack(combined_list) # convert to nparray to accelerate the speed.
-    combined_df = pd.DataFrame(combined_np_array,columns=sampleID_list)
+def images(args):
+    RD_norm_dir     = args.rd_norm_dir
+    ref_samples_dir = args.ref_dir
+    cnv_file        = args.cnv_list
+    output_path     = args.output
+    corr_threshold  = float(args.corr_threshold)
+    flanking        = args.flanking
+    split_img       = args.split
+    try:
+        sge_task_id = int(args.specific)
+    except:
+        sge_task_id = 'all'
 
-    # Calculate correlation coefficient for read depth matrix
-    print("Calculate correlation coefficient for read depth matrix ...")
-    corrMatrix = pd.DataFrame(np.corrcoef(combined_np_array, rowvar=False), columns=sampleID_list)
-    sampleID_str = '\t'.join([sampleID for sampleID in sampleID_list])
+    generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id)
 
-    corr_matrix_file = project_path+'/correlation_matrix.txt'
-    np.savetxt(corr_matrix_file,corrMatrix, delimiter="\t", header=sampleID_str, comments='')
-
-    # Select reference samples
-    for case_sampleID in sampleID_list:
-        ref_sample_list = []
-
-        print("For case sampleID:", case_sampleID)
-        ref_sample_df = corrMatrix[case_sampleID].sort_values(ascending=False)
-        ref_sample_size = min(num_ref,len(corrMatrix))
-        for i in range(1,ref_sample_size):
-            ref_sampleID = sampleID_list[ref_sample_df.index[i]]
-            ref_sample_corr = ref_sample_df.iloc[i]
-            if ref_sample_corr >= corr_threshold:
-                ref_sample_list.append([ref_sampleID, ref_sample_corr])
-
-        output_ref_file = project_path + '/ref_samples/'+case_sampleID+'.ref.samples.txt'
-        func.output_to_file(ref_sample_list, output_ref_file)
-
+# Main function
 parser = argparse.ArgumentParser(prog='cnv_espresso', description='Validate CNVs in silico')
 subparsers = parser.add_subparsers()
 
@@ -129,51 +92,24 @@ svd_parser.set_defaults(func=normalization)
 
 #Select reference samples
 ref_parser = subparsers.add_parser('reference', help="Calculate the correlation matrix and select references")
-ref_parser.add_argument('--project_path', required=True, help='Project folder')
+ref_parser.add_argument('--project_dir', required=True, help='Project folder')
 ref_parser.add_argument('--norm_list', required=True, help='Normlized read depth file list')
-ref_parser.add_argument('--num_ref', required=False, default=100, help='Number of reference samples')
-ref_parser.add_argument('--corr_threshold', required=False, default=70, help='The mininum Pearson correlation threshold for reference samples')
-ref_parser.set_defaults(func=reference_selection)
+ref_parser.add_argument('--num_ref', required=False, default=100, help='Max number of reference samples')
+ref_parser.add_argument('--corr_threshold', required=False, default=-1, help='The mininum Pearson correlation threshold for reference samples')
+ref_parser.set_defaults(func=reference)
 
-## Filter matrix by GC content, mapping ability and exon length
-#svd_parser = subparsers.add_parser('filter', help="Filter matrix by GC content, mapping ability and exon length")
-#svd_parser.add_argument('--rpkm_matrix', required=True, help='Matrix of RPKM values')
-#svd_parser.add_argument('--ref_file', required=False, help='Reference file for the calculation of GC percentage')
-#svd_parser.add_argument('--map_file', required=False, help='Mapping ability file.')
-#svd_parser.add_argument('--filter_params', required=True, help='Parameters of filtering')
-#svd_parser.add_argument('--output', required=False, help='Filtered matrix')
-#svd_parser.set_defaults(func=filter_rpkm)
-#
-##SVD
-#svd_parser = subparsers.add_parser('svd', help="SVD")
-#svd_parser.add_argument('--rpkm_matrix', required=True, help='')
-#svd_parser.add_argument('--output', required=False, help='')
-## svd_parser.add_argument('--svd', type=int, required=True, help='Number of components to remove')
-#svd_parser.set_defaults(func=svd)
-#
-##CNV discover
-#cnv_parser = subparsers.add_parser('discover', help="Run HMM to discover CNVs")
-#cnv_parser.add_argument('--params', required=True, help='Parameters used by HMM')
-#cnv_parser.add_argument('--rpkm_matrix', required=True, help='RPKM matrix.')
-#cnv_parser.add_argument('--mode',required=True, default='SVD', help='Data normalization by SVD or baseline mode.')
-#cnv_parser.add_argument('--output', required=True, help='Output file.')
-#cnv_parser.add_argument('--sample', required=False, default='', help='Optionally, users can choose one sample to run.')
-#cnv_parser.add_argument('--vcf', required=False, default='', help='Optionally, users can input snp information by specifing a vcf file')
-#cnv_parser.add_argument('--hetsnp', required=False, default=False)
-##cnv_parser.add_argument('--no-hetsnp', dest='hetsnp', action='store_true')
-##cnv_parser.set_defaults(hetsnp=True)
-#cnv_parser.add_argument('--tagsnp', required=False, default=False)
-##cnv_parser.add_argument('--no-tagsnp', dest='tagsnp', action='store_true')
-##cnv_parser.set_defaults(tagsnp=True)
-#cnv_parser.add_argument('--tagsnp_file',required = False, help='TagSNP file location.')
-#cnv_parser.set_defaults(func=discover)
-#
-##Merge results
-#cnv_parser = subparsers.add_parser('merge', help="Merge results from different methods")
-#cnv_parser.add_argument('--datafile_svd', required=True)
-#cnv_parser.add_argument('--datafile_dis', required=True)
-#cnv_parser.add_argument('--output', required=True)
-#cnv_parser.set_defaults(func=merge_results)
-#
+#Generate images
+img_parser = subparsers.add_parser('images', help="Encode CNV predictions into images")
+img_parser.add_argument('--rd_norm_dir', required=True, help='The folder for normalized read depth files')
+img_parser.add_argument('--ref_dir', required=True, help='The folder for reference samples')
+img_parser.add_argument('--cnv_list', required=True, help='Please input a CNV prediction list')
+img_parser.add_argument('--output', required=True, help='Output folder for images')
+img_parser.add_argument('--corr_threshold', required=False, default=0.7, help='The folder for normalized read depth files')
+img_parser.add_argument('--flanking', required=False, default=False, help='The folder for normalized read depth files')
+img_parser.add_argument('--split', required=False, default=False, help='Generate split sliding window images for CNVs')
+img_parser.add_argument('--specific', required=False, default=False, help='Generate ONE image for a specific CNV in the list file')
+img_parser.set_defaults(func=images)
+
+
 args = parser.parse_args()
 args.func(args)
