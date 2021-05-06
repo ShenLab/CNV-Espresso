@@ -50,7 +50,7 @@
 
     ^ TODO: This step can show time. it is helpful for other functions.
 
-### Step 6. Generate images 
+### Step 5. Generate images 
     RD_norm_dir=${project_dir}/norm/
     ref_samples_dir=${project_dir}/ref_samples/
     cnv_list=${project_dir}/xhmm.xcnv
@@ -67,10 +67,10 @@
     2. Generate images by cluster 
     ^ Note: you need to modify the script path in the `cluster_generate_images.sh` at first
 
-    qsub -t 1-1505 ${script_dir}cluster_generate_images.sh \
+    qsub -t 1-1505 ${script_dir}cluster_images.sh \
         ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
 
-    qsub -t 1-15 ${script_dir}cluster_generate_images.sh \
+    qsub -t 100-115 ${script_dir}cluster_images.sh \
         ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
 
 ### images check and annotate file name into the cnv file for downstream analysis
