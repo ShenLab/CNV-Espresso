@@ -9,6 +9,7 @@ import math
 import pysam
 import sys
 import lockfile
+from time import sleep
 
 ## Variables
 global_var_dict = func.global_variables()
@@ -114,7 +115,7 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     if not os.path.exists(ref_samples_file):
         print("    -[Error]: error in reference samples related file for %s in %s"%(sampleID, ref_samples_dir))
         exit(0)
-   
+  
     reference_RD_df = func.fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, 
                                                     cnv_chr, figure_left, figure_right, 
                                                     fixed_win_num, corr_threshold)
@@ -142,17 +143,15 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     ### plot case sample
     ax_rd.plot((RD_cnv_region_df["start"]+RD_cnv_region_df["end"])/2, RD_cnv_region_df["RD_norm"], \
                 color=case_sample_color , marker='o', linewidth=2)
-
-    ### plot vertical lines for marking CNV boundries.
-    #ax_rd.axvline(x=cnv_start, linestyle='dotted', color='r')
-    #ax_rd.axvline(x=cnv_end, linestyle='dotted', color='r')
-
     ax_rd.set_title(title_info)
+
+    ### write the img path to the cnv_file_w_img_file
+    print("  --Step4. Output image file to %s."%(output_EntireCNV_image_dir+image_file))
     img_path = output_EntireCNV_image_dir+image_file
     plt.savefig(img_path)
     plt.close()  
-    print("  --Step4. Output image file to %s."%(output_EntireCNV_image_dir+image_file))
-    ### write the img path to the cnv_file_w_img_file
+
+    print("  --Step5. Update the %s with img path."%cnv_info_w_img_file)
     lock_flag = lockfile.LockFile(cnv_info_w_img_file)
     while lock_flag.is_locked():
         sleep(0.01)
@@ -161,9 +160,8 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     cnv_data_df.loc[index, 'img_path'] = img_path
     cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
     lock_flag.release()
-    print("  --Step5. Update the %s with img path."%cnv_info_w_img_file)
-    print("  --[Done].")
 
+    print("  --[Done].")
 
     ## plot split CNV for each three targets 
     if split_img == True:
@@ -231,7 +229,6 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
         cnv_data_df.loc[index, 'split_cnv_img_path'] = '\n'.join([each_path for each_path in split_cnv_path_list]) 
         cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
         lock_flag.release()
-
 
 def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id):
     try:

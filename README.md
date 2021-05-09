@@ -53,7 +53,7 @@
 ### Step 5. Generate images 
     RD_norm_dir=${project_dir}/norm/
     ref_samples_dir=${project_dir}/ref_samples/
-    cnv_file=${project_dir}/xhmm.xcnv
+    cnv_list=${project_dir}/xhmm.xcnv
     output_dir=${project_dir}
 
     1. Generate images
@@ -62,7 +62,7 @@
         --ref_dir ${ref_samples_dir} \
         --cnv_list ${cnv_file} \
         --output ${output_dir} \
-        --specific 1048 
+        --specific 10 
 
     2. Generate images by cluster 
     ^ Note: you need to modify the script path in the `cluster_generate_images.sh` at first
@@ -70,15 +70,13 @@
     qsub -t 1-1505 ${script_dir}cluster_images.sh \
         ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
 
-    qsub -t 20-35 ${script_dir}cluster_images.sh \
-        ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
 
 ### Step 6. Training 
 
 ### Step 7. Validating CNV predictions in silico 
     cnv_w_img_file=${project_dir}/cnv_info_w_img.csv
     model_file='/home/rt2776/cnv_espresso/model/rare_entire_cnv_MobileNet_v1_fine-tuning_3classes.h5'
-    output_file=${project_dir}/cnv_espresso_prediction.csv
+    output_file=${project_dir}/cnv_espresso_prediction_cpu.csv
 
     python ${script_dir}cnv_espresso.py predict \
         --cnv_list ${cnv_w_img_file} \
@@ -86,8 +84,8 @@
         --output ${output_file} \
         --use_gpu False
 
-## [TBD] Other functions
-### plot read depth before and after GC normlization
+## [TODO] Other functions
+    1. plot read depth before and after GC normlization
 
-### Merge results from multiple CNV callers
+    2. Merge results from multiple CNV callers
 

@@ -1,18 +1,13 @@
 from __future__ import print_function
 import os
-#import re
 import sys
 import pdb
 import copy
-#import random
-#import datetime
 import sklearn
 import tensorflow as tf
-print("Tensorflow version " + tf.__version__)
 import pandas as pd
 import PIL
 import numpy as np
-#from matplotlib import pyplot as plt
 import keras
 from keras.models import load_model
 import function as func
@@ -22,8 +17,6 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
     # GPU or CPU selection
     if use_gpu == False or use_gpu == 'False':
         print("Using CPU ...")
-        #config = tf.ConfigProto(allow_soft_placement=True)
-        #tf.Session(config=config)
 
     else:
         cuda_available = tf.test.is_built_with_cuda()
@@ -40,6 +33,7 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
     img_width, img_height = 224, 224
 
     # Loading CNV_info and images. 
+    print("Loading CNV info and images ...")
     cnv_info_df   = pd.read_csv(cnv_file)
     entire_cnv_images_path_list  = cnv_info_df['img_path']
     CNV_TYPE_list = func.global_variables()['CNV_TYPE']
@@ -69,7 +63,8 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
     model_name = 'MobileNet_v1'
     print("Loading %s ... from %s"%(model_name, model_file))
     MobileNet_model = keras.models.load_model(model_file, custom_objects=custom_objects)
-    img_pred       = MobileNet_model.predict(img_np)
+    img_pred        = MobileNet_model.predict(img_np)
+
     pred_output_df = copy.deepcopy(cnv_info_df)
     pred_output_df.insert(pred_output_df.shape[1], 'Prob_DEL', "-")
     pred_output_df.insert(pred_output_df.shape[1], 'Prob_DIP', "-")

@@ -61,14 +61,14 @@ def resizeCropImg(img_file, target_width, target_height):
     top    = height*0.12
     right  = width*0.88
     bottom = height*0.88
-    image = image.crop((left, top, right, bottom))
-    image = image.resize((target_width, target_height))
+    image  = image.crop((left, top, right, bottom))
+    image  = image.resize((target_width, target_height))
     return image
 
 def loadImgs(cnv_list, img_width, img_height):
     cnv_np = np.zeros((len(cnv_list), img_width, img_height, 3))
     for index, each_cnv in enumerate(cnv_list):
-        if index % 1000 == 1:
+        if index % 100 == 1:
             time_stamp = datetime.datetime.now()
             time_str   = time_stamp.strftime('%Y.%m.%d-%H:%M:%S')
             print("[%s] Processing %d %s..."%(time_str, index, each_cnv))
