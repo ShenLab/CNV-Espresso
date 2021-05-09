@@ -75,8 +75,6 @@ def prediction(args):
     model_file  = args.model
     output_file = args.output
     use_gpu     = args.use_gpu
-    print("Use GPU:", use_gpu)
-    #TBD: work with CPU
     cnn_prediction(cnv_file, model_file, use_gpu, output_file)
 
 # Main function

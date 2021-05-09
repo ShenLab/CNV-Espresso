@@ -73,13 +73,6 @@
     qsub -t 20-35 ${script_dir}cluster_images.sh \
         ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
 
-#### images check and annotate file name into the cnv file for downstream analysis
-#    cnv_list='/home/rt2776/1000GP/3_cnv_espresso_BI/xhmm_NA12878.xcnv' 
-#    output_dir='/home/rt2776/1000GP/3_cnv_espresso_BI/images_ref70_flanking/'
-#    python /home/rt2776/cnv_espresso/src/generate_images_results_check_annotate.py \
-#        ${cnv_list} ${output_dir}
-
-
 ### Step 6. Training 
 
 ### Step 7. Validating CNV predictions in silico 
@@ -87,15 +80,14 @@
     model_file='/home/rt2776/cnv_espresso/model/rare_entire_cnv_MobileNet_v1_fine-tuning_3classes.h5'
     output_file=${project_dir}/cnv_espresso_prediction.csv
 
-    python /home/rt2776/cnv_espresso/src/prediction.py \
-        ${cnv_w_img_file} ${model_file} ${output_file}
-
     python ${script_dir}cnv_espresso.py predict \
         --cnv_list ${cnv_w_img_file} \
         --model ${model_file} \
-        --output ${output_file}
+        --output ${output_file} \
+        --use_gpu False
 
-## Other functions
+## [TBD] Other functions
 ### plot read depth before and after GC normlization
 
 ### Merge results from multiple CNV callers
+

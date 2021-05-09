@@ -10,20 +10,20 @@ import datetime
 import tensorflow as tf
 print("Tensorflow version " + tf.__version__)
 import pandas as pd
-
+import pdb
 import PIL
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.collections
 import seaborn as sns
 
+#import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve
 from sklearn.metrics import auc
 from sklearn.metrics import classification_report
 from sklearn import metrics
 from sklearn.model_selection import KFold, StratifiedKFold
-import sklearn
 
 #import keras
 from tensorflow import keras
@@ -71,9 +71,12 @@ def loadImgs(cnv_list, img_width, img_height):
         if index % 1000 == 1:
             time_stamp = datetime.datetime.now()
             time_str   = time_stamp.strftime('%Y.%m.%d-%H:%M:%S')
-            print("[%s] Processing %d ..."%(time_str, index))
-        cnv_img = resizeCropImg(each_cnv, img_width, img_height)
-        cnv_np[index] = tf.keras.preprocessing.image.img_to_array(cnv_img)
+            print("[%s] Processing %d %s..."%(time_str, index, each_cnv))
+        try:
+            cnv_img = resizeCropImg(each_cnv, img_width, img_height)
+            cnv_np[index] = tf.keras.preprocessing.image.img_to_array(cnv_img)
+        except:
+            cnv_np[index] = None
     time_stamp = datetime.datetime.now()
     time_str   = time_stamp.strftime('%Y.%m.%d-%H:%M:%S')
     print("[%s] Done %d."%(time_str, index))
