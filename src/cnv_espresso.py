@@ -18,7 +18,8 @@ from windows import *
 from normalization import * 
 from reference import *
 from images import *
-from prediction import *
+from train import *
+from predict import *
 
 # Main functions
 def windows(args):
@@ -70,7 +71,17 @@ def images(args):
 
     generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id)
 
-def prediction(args):
+def train(args):
+    true_del  = args.true_del
+    true_dup  = args.true_dup
+    false_del = args.false_del
+    false_dup = args.false_dup
+    use_gpu   = args.use_gpu
+    output_dir= args.output
+
+    cnn_train(true_del, true_dup, false_del, false_dup, use_gpu, output_dir)
+
+def predict(args):
     cnv_file    = args.cnv_list
     model_file  = args.model
     output_file = args.output
@@ -118,6 +129,16 @@ img_parser.add_argument('--specific', required=False, default=False, help='Gener
 img_parser.set_defaults(func=images)
 
 #Train the CNN model
+cnn_parser = subparsers.add_parser('train', help="Train the CNN model from scratch")
+cnn_parser.add_argument('--true_del', required=True, help='Please input a bunch of true deletions with image path for training the model')
+cnn_parser.add_argument('--true_dup', required=True, help='Please input a bunch of true duplications with image path for training the model')
+cnn_parser.add_argument('--false_del', required=True, help='Please input a bunch of false deletions with image path for training the model')
+cnn_parser.add_argument('--false_dup', required=True, help='Please input a bunch of false duplications with image path for training the model')
+cnn_parser.add_argument('--use_gpu', required=False, default=True, help='Using GPU or CPU to train the model')
+cnn_parser.add_argument('--batch_size', required=False, default=32, help='Please input the batch size for CNN training')
+cnn_parser.add_argument('--epochs', required=False, default=20, help='Please input epochs for CNN training')
+cnn_parser.add_argument('--output', required=True, help='Output directory for a trained CNN model')
+cnn_parser.set_defaults(func=train)
 
 #Prediction
 pred_parser = subparsers.add_parser('predict', help="Validate CNV predictions by CNN")
@@ -125,7 +146,7 @@ pred_parser.add_argument('--cnv_list', required=True, help='Please input the CNV
 pred_parser.add_argument('--model', required=True, help='Please input a trained CNN model file')
 pred_parser.add_argument('--use_gpu', required=False, default=False, help='Predict CNVs by using GPU or CPU')
 pred_parser.add_argument('--output', required=True, help='Output CNV validation results')
-pred_parser.set_defaults(func=prediction)
+pred_parser.set_defaults(func=predict)
 
 args = parser.parse_args()
 args.func(args)

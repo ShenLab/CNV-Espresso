@@ -72,6 +72,25 @@
 
 
 ### Step 6. Training 
+    In general, you can directly use our pretrained CNN model(/URL) for your in silico validation (Skip step 6). However, if you have a bunch of validated or confirmed CNVs, you can also train the CNN model from scratch. If so, please follow the tutorial below:
+
+    1. Please use `images` function in `cnv_espresso.py` as *step5* to generate images for your prepared true deletion, true duplication, false deletion and false duplication. Note that false deletion and false duplication will be treated as diploid together in the downstream steps.
+
+    2. train the model by the following command:
+    true_del_img=${project_dir}/train/true_del.list
+    true_dup_img=${project_dir}/train/true_dup.list
+    false_del_img=${project_dir}/train/false_del.list
+    false_dup_img=${project_dir}/train/false_dup.list
+
+    python ${script_dir}cnv_espresso.py train \
+        --true_del ${true_del_img} \
+        --true_dup ${true_dup_img} \
+        --false_del ${false_del_img} \
+        --false_dup ${false_dup_img} \
+        --use_gpu True \
+        --output ${output_dir}
+    
+    Alternatively, we also prepared a jupyter notebook(/URL) for tracking and debugging the entire training process.
 
 ### Step 7. Validating CNV predictions in silico 
     cnv_w_img_file=${project_dir}/cnv_info_w_img.csv
