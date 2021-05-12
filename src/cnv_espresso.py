@@ -72,14 +72,16 @@ def images(args):
     generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id)
 
 def train(args):
-    true_del  = args.true_del
-    true_dup  = args.true_dup
-    false_del = args.false_del
-    false_dup = args.false_dup
-    use_gpu   = args.use_gpu
-    output_dir= args.output
+    true_del_file    = args.true_del
+    true_dup_file    = args.true_dup
+    false_del_file   = args.false_del
+    false_dup_file   = args.false_dup
+    use_gpu          = args.use_gpu
+    batch_size       = args.batch_size
+    epochs           = args.epochs
+    output_model_dir = args.output
 
-    cnn_train(true_del, true_dup, false_del, false_dup, use_gpu, output_dir)
+    cnn_train(true_del_file, true_dup_file, false_del_file, false_dup_file, use_gpu, batch_size, epochs, output_model_dir)
 
 def predict(args):
     cnv_file    = args.cnv_list

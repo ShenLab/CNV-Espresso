@@ -155,7 +155,7 @@ def output_model_metrics(model_name, loss, accuracy, f1_score, precision, recall
 show results
 ''' 
 #from sklearn.metrics import classification_report
-def show_confusion_matrix(validations, predictions, labels):
+def show_confusion_matrix(validations, predictions, labels, output_img_file=None):
     matrix = metrics.confusion_matrix(validations, predictions)
     plt.figure(figsize=(6, 4),dpi=150)
     sns.heatmap(matrix,
@@ -169,9 +169,14 @@ def show_confusion_matrix(validations, predictions, labels):
     plt.title("Confusion Matrix")
     plt.ylabel("True Label")
     plt.xlabel("Predicted Label")
+
+    if output_img_file != None:
+        plt.savefig(output_img_file, facecolor='w', edgecolor='w', bbox_inches = 'tight')
+        print("Figure has been output plot to:",output_img_file)
     plt.show()
+    plt.close()
     
-def confusion_matrix(model, test_img, test_label, nClasses):
+def confusion_matrix(model, test_img, test_label, nClasses, output_img_file=None):
     print("\n--- Confusion matrix for test data ---\n")
     if nClasses == 4:
         print("4 classes label: 0-True del; 1-False del; 2-False dup; 3-True dup")
@@ -191,12 +196,12 @@ def confusion_matrix(model, test_img, test_label, nClasses):
     # Take the class with the highest probability from the test predictions
     max_pred_test = np.argmax(test_pred, axis=1)
     max_label_test = np.argmax(test_label_one_hot, axis=1)
-    show_confusion_matrix(max_label_test, max_pred_test, labels)
+    show_confusion_matrix(max_label_test, max_pred_test, labels, output_img_file)
 
     print("\n--- Classification report for test data ---\n")
     print(classification_report(max_label_test, max_pred_test))
-    
-def draw_loss_accuracy_curves(history, project_name):
+   
+def draw_loss_accuracy_curves(history, project_name, output_img_file=None):
     plt.figure(figsize=[8,6])
     plt.plot(history.history['loss'],'r',linewidth=3.0)
     plt.plot(history.history['val_loss'],'b',linewidth=3.0)
@@ -213,8 +218,15 @@ def draw_loss_accuracy_curves(history, project_name):
     plt.ylabel('Accuracy',fontsize=16)
     plt.ylim(0.7, 1)
     plt.title(project_name+' accuracy curves',fontsize=16)
-    
-def draw_single_roc_curve(tpr, fpr, auc):
+
+    if output_img_file != None:
+        plt.savefig(output_img_file, facecolor='w', edgecolor='w', bbox_inches = 'tight')
+        print("Figure has been output plot to:",output_img_file)
+    plt.show()
+    plt.close()
+
+   
+def draw_single_roc_curve(tpr, fpr, auc, output_img_file=None):
     plt.figure(1,dpi=150)
     plt.tick_params(labelsize="x-large")
     plt.plot([0, 1], [0, 1], 'k--')
@@ -236,7 +248,12 @@ def draw_single_roc_curve(tpr, fpr, auc):
     plt.title('ROC curve (zoomed in at top left)',fontsize="xx-large")
     plt.legend(loc='best',fontsize="large")
     plt.show()
-    
+
+    if output_img_file != None:
+        plt.savefig(output_img_file, facecolor='w', edgecolor='w', bbox_inches = 'tight')
+        print("Figure has been output plot to:",output_img_file)
+    plt.close()
+
 def draw_multiple_roc_curve(tpr_list, fpr_list, auc_list, info_list, output_image_file=None):       
     plt.figure(1,dpi=150)
     plt.tick_params(labelsize="x-large")

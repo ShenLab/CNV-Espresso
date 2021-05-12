@@ -5,7 +5,7 @@ import copy
 import random
 import datetime
 import timeit
-
+import pdb
 import PIL
 import numpy as np
 import pandas as pd
@@ -35,7 +35,7 @@ import function_dl as func_dl
 import function as func
 
 
-def cnn_train(true_del_file, true_dup_file, false_del_file, false_dup_file, use_gpu, batch_size, epoches, output_model_dir):
+def cnn_train(true_del_file, true_dup_file, false_del_file, false_dup_file, use_gpu, batch_size, epochs, output_model_dir):
     # GPU or CPU selection
     if use_gpu == False or use_gpu == 'False':
         print("Using CPU ...")
@@ -49,6 +49,9 @@ def cnn_train(true_del_file, true_dup_file, false_del_file, false_dup_file, use_
 
     img_width, img_height = 224, 224
     seed = 2021
+
+    # check output_model_dir
+    os.makedirs(output_model_dir, exist_ok=True)
 
     # ## Importing data from scratch
     ## For rare CNVs
@@ -90,14 +93,12 @@ def cnn_train(true_del_file, true_dup_file, false_del_file, false_dup_file, use_
 
     # ### Generate labels for entire CNVs
     # Three classes
-    true_del_label = [0 for i in range(0,len(true_del_img_np))]
+    true_del_label  = [0 for i in range(0,len(true_del_img_np))]
     false_del_label = [1 for i in range(0,len(false_del_img_np))]
-
-    true_dup_label = [2 for i in range(0,len(true_dup_img_np))]
+    true_dup_label  = [2 for i in range(0,len(true_dup_img_np))]
     false_dup_label = [1 for i in range(0,len(false_dup_img_np))]
 
     print(len(true_del_label), len(false_del_label), len(true_dup_label), len(false_dup_label))
-
 
     # ### Combine true & false data for entire CNVs
     combined_cnv_info_df = true_del_df.append(false_del_df, ignore_index=True)
@@ -134,9 +135,6 @@ def cnn_train(true_del_file, true_dup_file, false_del_file, false_dup_file, use_
 
 
     # ## Train the deep nerual model by hold-out validation
-    # 
-    # ### Split dataset into training (80%) and testing (20%) dataset
-
     func.showDateTime(end='\t')
     print("Split dataset into training (60%), validation (20%) and testing (20%) dataset ...")
 
@@ -160,7 +158,6 @@ def cnn_train(true_del_file, true_dup_file, false_del_file, false_dup_file, use_
 
 
     # ## CNN (Transfer learning and fine-tuning)
-
     # ### Using the pretrained MobileNet v1 architecture
     # - Firstly, we keep all the weights of base model frozen to train the FC layers.
     func.showDateTime(end='\t')
@@ -190,7 +187,7 @@ def cnn_train(true_del_file, true_dup_file, false_del_file, false_dup_file, use_
 
     print("Training by MobileNet_v1 model ...")
 
-    model_file = output_model_dir + project_name + "_" + model_name + "_" + str(nClasses) + "classes.h5"
+    model_file = output_model_dir + "/" +  model_name + "_" + str(nClasses) + "classes.h5"
 
     es = EarlyStopping(monitor  ='val_loss', mode='min', verbose=1, patience=3)
     mc = ModelCheckpoint(model_file,
@@ -209,10 +206,12 @@ def cnn_train(true_del_file, true_dup_file, false_del_file, false_dup_file, use_
     print("\n")
     loss, accuracy, f1_score, precision, recall = model.evaluate(test_img, test_label)
 
-    func_dl.draw_loss_accuracy_curves(history, project_name)
-    func_dl.confusion_matrix(model, test_img, test_label, nClasses)
-    fpr, tpr, thresholds, auc = func_dl.pred_roc_data(model, test_img, test_label)
-    func_dl.draw_single_roc_curve(tpr, fpr, auc)
+    func_dl.draw_loss_accuracy_curves(history, "CNN transfer learning", 
+                                                output_img_file=output_model_dir + "/"+ "loss_accuracy_curves_1.pdf")
+    func_dl.confusion_matrix(model, test_img, test_label, nClasses, 
+                                                output_img_file=output_model_dir + "/"+ "confusion_matrix_1.pdf")
+    fpr, tpr, thresholds, auc = func_dl.pred_roc_data(model, test_img, test_label) 
+    func_dl.draw_single_roc_curve(tpr, fpr, auc, output_img_file=output_model_dir + "/"+ "ROC_curve_1.pdf")
 
 
     # ### Fine-tuning
@@ -220,7 +219,7 @@ def cnn_train(true_del_file, true_dup_file, false_del_file, false_dup_file, use_
 
     func.showDateTime(end='\t')
     print("\t 2. Fine tuning the MobileNet_v1 model ...")
-    model_file = output_model_dir + project_name + "_" + model_name + "_" + str(nClasses) + "classes.h5"
+    model_file = output_model_dir + "/" + model_name + "_" + str(nClasses) + "classes.h5"
 
     base_model.trainable=True
     model.summary()
@@ -244,10 +243,12 @@ def cnn_train(true_del_file, true_dup_file, false_del_file, false_dup_file, use_
     print("\n")
     loss, accuracy, f1_score, precision, recall = model.evaluate(test_img, test_label)
 
-    func_dl.draw_loss_accuracy_curves(history, project_name)
-    func_dl.confusion_matrix(model, test_img, test_label, nClasses)
-    fpr, tpr, thresholds, auc = func_dl.pred_roc_data(model, test_img, test_label)
-    func_dl.draw_single_roc_curve(tpr, fpr, auc)
+    func_dl.draw_loss_accuracy_curves(history, "CNN fine-tuning", 
+                                                output_img_file=output_model_dir + "/"+ "loss_accuracy_curves_2.pdf")
+    func_dl.confusion_matrix(model, test_img, test_label, nClasses, 
+                                                output_img_file=output_model_dir + "/"+ "confusion_matrix_2.pdf")
+    fpr, tpr, thresholds, auc = func_dl.pred_roc_data(model, test_img, test_label) 
+    func_dl.draw_single_roc_curve(tpr, fpr, auc, output_img_file=output_model_dir + "/"+ "ROC_curve_2.pdf")
 
     func.showDateTime()
     print("[Done]. Please check the trained model at",model_file)
