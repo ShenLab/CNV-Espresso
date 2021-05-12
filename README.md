@@ -41,7 +41,7 @@ zcat ${output_rd_dir}/${sample_name}.regions.bed.gz | cut -f1-3,5 | bgzip -c > $
 tabix -f -p bed ${output_rd_dir}/${sample_name}.cov.bed.gz
 ```
 
-This is a relatively time-consuming step, you can use the following command to accelerate the speed if you have a cluster.
+This is a relatively time-consuming step, however, you can use the following command to accelerate the speed if you have a cluster.
 
 - Option 2. Multiple samples (by cluster)
 
