@@ -4,7 +4,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import pdb
 import os
-import bz2
 import math
 import pysam
 import sys
