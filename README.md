@@ -35,6 +35,7 @@ python ${script_dir}cnv_espresso.py windows \
 sample_name='example_sample'
 bam_cram_file=/path/to/example_sample.cram
 windows_file=${project_dir}/windows.bed
+mkdir -p ${output_rd_dir}
 
 mosdepth -n --fasta ${reference_file} --by ${windows_file} --mapq 30 ${output_rd_dir}/${sample_name} ${bam_cram_file}
 zcat ${output_rd_dir}/${sample_name}.regions.bed.gz | cut -f1-3,5 | bgzip -c > ${output_rd_dir}/${sample_name}.cov.bed.gz
@@ -46,7 +47,7 @@ This is a relatively time-consuming step, however, you can use the following com
 - Option 2. Multiple samples (by cluster)
 
 ```bash
-bam_cram_file_path_list=${project_dir}/example_samples.txt
+bam_cram_file_path_list=${project_dir}/sample_rd_file_list.txt
 windows_file=${project_dir}/windows.bed
 
 # Suppose we want to calculate RD for 1000 samples
@@ -66,8 +67,8 @@ ls ${output_rd_dir}*.cov.bed.gz > ${project_dir}/sample_raw_rd.txt
 
 ```bash
 python ${script_dir}cnv_espresso.py normalization \
-    --windows ${project_dir}/windows.bed \ 
-    --input ${output_rd_dir}/example_sample.cov.bed.gz \ 
+    --windows ${project_dir}/windows.bed \
+    --input ${output_rd_dir}/example_sample.cov.bed.gz \
     --output ${project_dir}/norm/
 ```
 
@@ -89,7 +90,7 @@ output_dir=${project_dir}/norm/
 
 # Suppose we want to process 1000 samples
 qsub -t 1-1000 ${script_dir}cluster_gc_norm.sh \
-    ${windows_file} ${RD_list} ${output_dir} 
+    ${windows_file} ${RD_list} ${output_dir}
 ```
 
 ### Step 4. Select reference samples
@@ -108,10 +109,12 @@ python ${script_dir}cnv_espresso.py reference \
 
 ### Step 5. Generate images 
 
+Here, we will take other CNV caller's output (e.g. `xhmm.xcnv`) as our input and we will use the following command to encode those CNV predictions into images.
+
 ```bash
 RD_norm_dir=${project_dir}/norm/
 ref_samples_dir=${project_dir}/ref_samples/
-cnv_list=${project_dir}/xhmm.xcnv
+cnv_list=${project_dir}/xhmm.xcnv # other CNV caller's output
 output_dir=${project_dir}
 ```
 
@@ -133,9 +136,11 @@ qsub -t 1-1000 ${script_dir}cluster_images.sh \
     ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
 ```
 
+A few example images are located [here](). 
+
 ### Step 6. Training 
 
-In general, you can directly use our pretrained CNN model(/URL) for your in *silico* validation (Skip step 6). However, if you have a bunch of validated or confirmed CNVs, you can also train the CNN model from scratch. If so, please follow the tutorial below:
+In general, you can directly use our pretrained CNN model ([MobileNet_v1_fine_tuning_3classes.h5](https://github.com/ShenLab/CNV-Espresso/blob/main/model/MobileNet_v1_fine_tuning_3classes.h5)) for your in *silico* validation (Skip step 6). However, if you have a bunch of validated or confirmed CNVs, you can also train the CNN model from scratch. If so, please follow the tutorial below:
 
 1. Please use `images` function in `cnv_espresso.py` as **Step5** to generate images for your prepared true deletion, true duplication, false deletion and false duplication. Note that false deletion and false duplication will be treated as diploid together in the downstream steps.
 
@@ -157,13 +162,13 @@ python ${script_dir}cnv_espresso.py train \
     --output ${output_dir}
 ```
 
-Alternatively, we also prepared a jupyter notebook(/URL) for tracking and debugging the entire training process.
+Alternatively, we also prepared a jupyter notebook (**[train.ipynb](https://github.com/ShenLab/CNV-Espresso/blob/main/src/train.ipynb)**) for tracking and debugging the entire training process.
 
 ### Step 7. Validating CNV predictions in silico 
 
 ```bash
 cnv_w_img_file=${project_dir}/cnv_info_w_img.csv
-model_file=${project_dir}/model/MobileNet_v1_fine_tuning_3classes.h5
+model_file='/path/to/model/MobileNet_v1_fine_tuning_3classes.h5'
 output_file=${project_dir}/cnv_espresso_prediction.csv
 
 python ${script_dir}cnv_espresso.py predict \
