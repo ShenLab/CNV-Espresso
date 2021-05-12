@@ -68,17 +68,17 @@ ls ${output_rd_dir}*.cov.bed.gz > ${project_dir}/sample_raw_rd.txt
 ```bash
 python ${script_dir}cnv_espresso.py normalization \
     --windows ${project_dir}/windows.bed \
-    --input ${output_rd_dir}/example_sample.cov.bed.gz \
-    --output ${project_dir}/norm/
+    --input   ${output_rd_dir}/example_sample.cov.bed.gz \
+    --output  ${project_dir}/norm/
 ```
 
 - Option 2. Multiple samples (input a simple list) 
 
 ```bash
 python ${script_dir}cnv_espresso.py normalization \
- --windows ${project_dir}/windows.bed \ 
+ --windows    ${project_dir}/windows.bed \ 
  --input_list ${project_dir}/sample_raw_rd.txt \
- --output ${project_dir}/norm/
+ --output     ${project_dir}/norm/
 ```
 
 - Option 3. Multiple samples (by cluster) 
@@ -102,8 +102,8 @@ ls ${project_dir}/norm/*.gz > ${project_dir}/sample_norm_rd.list
 ```bash
 python ${script_dir}cnv_espresso.py reference \ 
     --project_dir ${project_dir} \
-    --norm_list ${project_dir}/sample_norm_rd.list \
-    --num_ref 100 \
+    --norm_list   ${project_dir}/sample_norm_rd.list \
+    --num_ref     100 \
     --corr_threshold -1 
 ```
 
@@ -123,9 +123,9 @@ output_dir=${project_dir}
 ```bash
 python ${script_dir}cnv_espresso.py images \
     --rd_norm_dir ${RD_norm_dir} \
-    --ref_dir ${ref_samples_dir} \
-    --cnv_list ${cnv_file} \
-    --output ${output_dir} 
+    --ref_dir     ${ref_samples_dir} \
+    --cnv_list    ${cnv_file} \
+    --output      ${output_dir} 
 ```
 
 - Option 2. Generate images by cluster
@@ -136,7 +136,7 @@ qsub -t 1-1000 ${script_dir}cluster_images.sh \
     ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
 ```
 
-A few example images are located [here](). 
+A few example images are located [here](https://github.com/ShenLab/CNV-Espresso/tree/main/example/images). 
 
 ### Step 6. Training 
 
@@ -154,12 +154,12 @@ false_dup_img=${project_dir}/train/false_dup.list
 output_dir=${project_dir}/model/
 
 python ${script_dir}cnv_espresso.py train \
-    --true_del ${true_del_img} \
-    --true_dup ${true_dup_img} \
+    --true_del  ${true_del_img} \
+    --true_dup  ${true_dup_img} \
     --false_del ${false_del_img} \
     --false_dup ${false_dup_img} \
-    --use_gpu True \
-    --output ${output_dir}
+    --use_gpu   True \
+    --output    ${output_dir}
 ```
 
 Alternatively, we also prepared a jupyter notebook (**[train.ipynb](https://github.com/ShenLab/CNV-Espresso/blob/main/src/train.ipynb)**) for tracking and debugging the entire training process.
@@ -173,14 +173,14 @@ output_file=${project_dir}/cnv_espresso_prediction.csv
 
 python ${script_dir}cnv_espresso.py predict \
     --cnv_list ${cnv_w_img_file} \
-    --model ${model_file} \
-    --output ${output_file} \
-    --use_gpu False
+    --model    ${model_file} \
+    --output   ${output_file} \
+    --use_gpu  False
 ```
 
 ## Utilities
 We will release the following auxiliary functions in the near future.
-- Plot read depth before and after GC normlization
+- Plot read depth signal before and after GC normlization
 - Merge results from multiple CNV callers
 
 ## Contact
