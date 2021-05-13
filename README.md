@@ -6,6 +6,7 @@
 Python with the following required libraries: tensorflow, keras, sklearn, numpy, pandas, matplotlib, seaborn, Pillow, pysam and lockfile
 
 Mosdepth: https://github.com/brentp/mosdepth
+
 Tabix: http://www.htslib.org/doc/tabix.html (optional)
 
 ## Usage
