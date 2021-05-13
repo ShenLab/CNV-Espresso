@@ -1,9 +1,9 @@
-# _CNV Espresso_
+#_CNV-Espresso_
 #### A tool designed for validating **C**opy **N**umber **V**ariants from **E**xome **S**equencing **PRE**diction**S** in **S**ilic**O**
 
 ## Dependencies
 
-Python with the following required libraries: tensorflow, keras, sklearn, numpy, pandas, matplotlib, seaborn, Pillow, pysam, lockfile
+Python with the following required libraries: tensorflow, keras, sklearn, numpy, pandas, matplotlib, seaborn, Pillow, pysam and lockfile
 
 Mosdepth: https://github.com/brentp/mosdepth
 
@@ -76,9 +76,9 @@ python ${script_dir}cnv_espresso.py normalization \
 
 ```bash
 python ${script_dir}cnv_espresso.py normalization \
- --windows    ${project_dir}/windows.bed \ 
- --input_list ${project_dir}/sample_raw_rd.txt \
- --output     ${project_dir}/norm/
+    --windows    ${project_dir}/windows.bed \
+    --input_list ${project_dir}/sample_raw_rd.txt \
+    --output     ${project_dir}/norm/
 ```
 
 - Option 3. Multiple samples (by cluster) 
@@ -100,7 +100,7 @@ ls ${project_dir}/norm/*.gz > ${project_dir}/sample_norm_rd.list
 ```
 
 ```bash
-python ${script_dir}cnv_espresso.py reference \ 
+python ${script_dir}cnv_espresso.py reference \
     --project_dir ${project_dir} \
     --norm_list   ${project_dir}/sample_norm_rd.list \
     --num_ref     100 \
@@ -140,7 +140,7 @@ A few example images are located [here](https://github.com/ShenLab/CNV-Espresso/
 
 ### Step 6. Training 
 
-In general, you can directly use our pretrained CNN model ([MobileNet_v1_fine_tuning_3classes.h5](https://github.com/ShenLab/CNV-Espresso/blob/main/model/MobileNet_v1_fine_tuning_3classes.h5)) for your in *silico* validation (Skip step 6). However, if you have a bunch of validated or confirmed CNVs, you can also train the CNN model from scratch. If so, please follow the tutorial below:
+In general, you can directly use our pretrained CNN model ([MobileNet_v1_fine_tuning_3classes.h5](https://github.com/ShenLab/CNV-Espresso/blob/main/model/MobileNet_v1_fine_tuning_3classes.h5)) for your *in silico* validation (Skip step 6). However, if you have a bunch of validated or confirmed CNVs, you can also train the CNN model from scratch. If so, please follow the tutorial below:
 
 1. Please use `images` function in `cnv_espresso.py` as **Step5** to generate images for your prepared true deletion, true duplication, false deletion and false duplication. Note that false deletion and false duplication will be treated as diploid together in the downstream steps.
 
@@ -164,7 +164,7 @@ python ${script_dir}cnv_espresso.py train \
 
 Alternatively, we also prepared a jupyter notebook (**[train.ipynb](https://github.com/ShenLab/CNV-Espresso/blob/main/src/train.ipynb)**) for tracking and debugging the entire training process.
 
-### Step 7. Validating CNV predictions in silico 
+### Step 7. Validating CNV predictions *in silico* 
 
 ```bash
 cnv_w_img_file=${project_dir}/cnv_info_w_img.csv
@@ -180,7 +180,7 @@ python ${script_dir}cnv_espresso.py predict \
 
 ## Utilities
 We will release the following auxiliary functions in the near future.
-- Plot read depth signal before and after GC normlization
+- Plot read depth signal before and after GC normalization
 - Merge results from multiple CNV callers
 
 ## Contact
