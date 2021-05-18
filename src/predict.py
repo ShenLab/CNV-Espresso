@@ -32,7 +32,21 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
     # Initial variables
     img_width, img_height = 224, 224
 
+    ## Load pre-calculated model
+    custom_objects = {"f1_m":func_dl.f1_m, "precision_m":func_dl.precision_m, "recall_m":func_dl.recall_m}
+
+    model_name = 'MobileNet_v1'
+    func.showDateTime('\t')
+    print("Loading %s ... from %s"%(model_name, model_file))
+    try:
+        MobileNet_model = keras.models.load_model(model_file, custom_objects=custom_objects)
+        print("Model Loaded. ")
+    except:
+        print("Unexpected error:", sys.exc_info()[0])
+        raise    
+
     # Loading CNV_info and images. 
+    func.showDateTime('\t')
     print("Loading CNV info and images ...")
     cnv_info_df   = pd.read_csv(cnv_file)
     entire_cnv_images_path_list  = cnv_info_df['img_path']
@@ -57,14 +71,7 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
     print('Total number classes: ', nClasses)
 
     # ## Precision
-    ## Load pre-calculated model
-    custom_objects = {"f1_m":func_dl.f1_m, "precision_m":func_dl.precision_m, "recall_m":func_dl.recall_m}
-
-    model_name = 'MobileNet_v1'
-    print("Loading %s ... from %s"%(model_name, model_file))
-    MobileNet_model = keras.models.load_model(model_file, custom_objects=custom_objects)
-    img_pred        = MobileNet_model.predict(img_np)
-
+    img_pred = MobileNet_model.predict(img_np)
     pred_output_df = copy.deepcopy(cnv_info_df)
     pred_output_df.insert(pred_output_df.shape[1], 'Prob_DEL', "-")
     pred_output_df.insert(pred_output_df.shape[1], 'Prob_DIP', "-")
