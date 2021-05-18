@@ -127,7 +127,7 @@ output_dir=${project_dir}
 python ${script_dir}cnv_espresso.py images \
     --rd_norm_dir ${RD_norm_dir} \
     --ref_dir     ${ref_samples_dir} \
-    --cnv_list    ${cnv_file} \
+    --cnv_list    ${cnv_list} \
     --output      ${output_dir} 
 ```
 

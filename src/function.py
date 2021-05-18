@@ -177,7 +177,8 @@ def fetch_sampleID_from_filepath(filepath):
 
 def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixed_win_num):
     '''
-    Fetch RD signal from tabix file 
+    Aim: Fetch RD signal from tabix file 
+    [Update] 2021.05.18 compatible with both CNV-Espresso and CLAMMS's normlized file
     '''
     RD_norm_file = fetch_relative_file_path(RD_norm_dir, sampleID,'gz')
     if not os.path.exists(RD_norm_dir):
@@ -188,7 +189,15 @@ def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixe
     # fetch
     f = pysam.TabixFile(RD_norm_file)
     RD_fetched_data = f.fetch(cnv_chr, int(cnv_start), int(cnv_end), parser=pysam.asTuple())
-    RD_fetched_df = pd.DataFrame(data=RD_fetched_data, columns=['chr', 'start', 'end', 'GC', 'RD_raw', 'RD_norm'])
+    RD_fetched_df = pd.DataFrame(data=RD_fetched_data)
+    if RD_fetched_df.shape[1] == 6: # for CNV-Espresso normlized file
+        RD_fetched_df.columns = ['chr', 'start', 'end', 'GC', 'RD_raw', 'RD_norm']
+    elif RD_fetched_df.shape[1] == 4: # for CLAMMS normlized file
+        RD_fetched_df.columns = ['chr', 'start', 'end', 'RD_norm']
+    else:
+        print("[Error] in the format of input file.")
+        pdb.set_trace()
+
     # add a new column as target groups
     RD_fetched_df_tmp = RD_fetched_df.copy()
     RD_fetched_df_tmp.loc[:, 'fixed_win_num'] = [val for val in np.arange(1,math.ceil((len(RD_fetched_df_tmp)/fixed_win_num))+1) for i in range(fixed_win_num)][0:len(RD_fetched_df_tmp)]
@@ -197,9 +206,13 @@ def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixe
     # change the type of columns
     RD_fetched_df[["start"]] = RD_fetched_df[["start"]].astype(int)
     RD_fetched_df[["end"]] = RD_fetched_df[["end"]].astype(int)
-    RD_fetched_df[["GC"]] = RD_fetched_df[["GC"]].astype(float)
-    RD_fetched_df[["RD_raw"]] = RD_fetched_df[["RD_raw"]].astype(float)
     RD_fetched_df[["RD_norm"]] = RD_fetched_df[["RD_norm"]].astype(float)
+    try:
+        RD_fetched_df[["GC"]] = RD_fetched_df[["GC"]].astype(float)
+        RD_fetched_df[["RD_raw"]] = RD_fetched_df[["RD_raw"]].astype(float)
+    except:
+        # Norm files from CLAMMS do not contain 'GC' and 'RD_raw' columns
+        pass
     return RD_fetched_df
 
 def loadRefSamplesID(ref_samples_file, corr_threshold):
@@ -212,10 +225,15 @@ def loadRefSamplesID(ref_samples_file, corr_threshold):
     return result_df
 
 def fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, cnv_chr, cnv_start, cnv_end, fixed_win_num, corr_threshold):
+    '''
+    [Update] 2021.05.18 compatible with both CNV-Espresso and CLAMMS's normlized file
+    '''
     # load reference sample ID
     ref_samplesID_df = loadRefSamplesID(ref_samples_file, corr_threshold)
     # load RD normalized data and fetch RD given the cnv region for each reference sample
-    reference_RD_df = pd.DataFrame(columns=['chr', 'start', 'end', 'GC', 'RD_raw', 'RD_norm', 'sample'])
+    ref_espresso_RD_df = pd.DataFrame(columns=['chr', 'start', 'end', 'GC', 'RD_raw', 'RD_norm', 'sample'])
+    ref_clamms_RD_df   = pd.DataFrame(columns=['chr', 'start', 'end', 'RD_norm', 'sample'])
+
     for index, row in ref_samplesID_df.iterrows():  
         ref_sampleID = row[0]
         try:
@@ -226,10 +244,22 @@ def fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, cnv_chr, cnv_start, cn
             ref_RD_cnv_region = RD_cnv_region_tmp
             del RD_cnv_region_tmp
             # combine results
-            reference_RD_df = reference_RD_df.append(ref_RD_cnv_region)
+            if ref_RD_cnv_region.shape[1] == 6+2: # for CNV-Espresso
+                ref_espresso_RD_df = ref_espresso_RD_df.append(ref_RD_cnv_region)
+            elif ref_RD_cnv_region.shape[1] == 4+2: # for CLAMMS
+                ref_clamms_RD_df = ref_clamms_RD_df.append(ref_RD_cnv_region)
+            else:
+                print("[Error] please check the norm file. ")
+                pdb.set_trace()
         except:
             print("    -[Error]: error in normalized reference RD file of %s in %s"%(ref_sampleID, RD_norm_dir))
-    return reference_RD_df
+    if ref_espresso_RD_df.shape[0] != 0 and ref_clamms_RD_df.shape[0] == 0:
+        return ref_espresso_RD_df
+    elif ref_espresso_RD_df.shape[0] == 0 and ref_clamms_RD_df.shape[0] != 0:
+        return ref_clamms_RD_df
+    else:
+        print("[Error] mixed norm files form both CNV-Espresso and CLAMMS ?")
+        pdb.set_trace()
 
 def fetch_relative_file_path(RD_norm_dir, sampleID, suffix):
     sample_rd_file = None
