@@ -257,6 +257,9 @@ def fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, cnv_chr, cnv_start, cn
         return ref_espresso_RD_df
     elif ref_espresso_RD_df.shape[0] == 0 and ref_clamms_RD_df.shape[0] != 0:
         return ref_clamms_RD_df
+    elif ref_espresso_RD_df.shape[0] == 0 and ref_clamms_RD_df.shape[0] == 0:
+        print("[Error] no reference sample or this is an outlier sample which has extremely low correlation with ref samples?")
+        pdb.set_trace()
     else:
         print("[Error] mixed norm files form both CNV-Espresso and CLAMMS ?")
         pdb.set_trace()

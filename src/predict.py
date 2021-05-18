@@ -48,8 +48,8 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
     # Loading CNV_info and images. 
     func.showDateTime('\t')
     print("Loading CNV info and images ...")
-    cnv_info_df   = pd.read_csv(cnv_file)
-    entire_cnv_images_path_list  = cnv_info_df['img_path']
+    cnv_info_df = pd.read_csv(cnv_file)
+    entire_cnv_images_path_list = cnv_info_df['img_path']
     CNV_TYPE_list = func.global_variables()['CNV_TYPE']
     CNV_TYPE      = func.fetch_colName(cnv_info_df.head(),CNV_TYPE_list)[1]
     img_np        = func_dl.loadImgs(entire_cnv_images_path_list, img_width, img_height)
@@ -94,7 +94,7 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
             if np.argmax(img_pred[i]) == 0:
                 pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "DEL"
             elif np.argmax(img_pred[i]) == 1:
-                pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "DIP"
+                pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "DIP_or_NotRare"
             elif np.argmax(img_pred[i]) == 2:
                 pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "DUP"
             else:
