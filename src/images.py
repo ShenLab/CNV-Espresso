@@ -118,7 +118,7 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     reference_RD_df = func.fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, 
                                                     cnv_chr, figure_left, figure_right, 
                                                     fixed_win_num, corr_threshold)
-    pdb.set_trace()        
+
     ## plot the entire cnv into one image
     print("  --Step3. Illustrating an image for the entire CNV ...")
     title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type + \
