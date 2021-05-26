@@ -17,7 +17,7 @@ from matplotlib import pyplot as plt
 import matplotlib.collections
 import seaborn as sns
 
-#import sklearn
+import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve
 from sklearn.metrics import auc
@@ -46,7 +46,7 @@ Processing images
 def test(x):
     print("Testing Your input is %s"%str(x))
     
-def showImg(img_data):
+def showImg(img_data, output_image_file=None):
     if type(img_data) is list:
         image = tf.keras.preprocessing.image.load_img(img_data)
         plt.imshow(image)
@@ -54,6 +54,11 @@ def showImg(img_data):
         image = tf.keras.preprocessing.image.array_to_img(img_data)
         plt.imshow(image)
         
+    if output_image_file != None:
+        plt.savefig(output_image_file, facecolor='w', edgecolor='w', bbox_inches = 'tight')
+        print("Output image to:",output_image_file)
+        plt.close()
+    
 def resizeCropImg(img_file, target_width, target_height):
     image = tf.keras.preprocessing.image.load_img(img_file)
     width, height = image.size
@@ -142,13 +147,13 @@ def pred_roc_data(model, img, label_one_hot):
 
 def output_model_metrics(model_name, loss, accuracy, f1_score, precision, recall, output_file):
     model_metric_list = []
-    model_metric_list.append(model_name)
+    model_metric_list.append([model_name])
     model_metric_list.append(["loss:", loss]) 
     model_metric_list.append(["accuracy:", accuracy])
     model_metric_list.append(["precision:", precision])
     model_metric_list.append(["recall:", recall])
     model_metric_list.append(["f1_score:", f1_score])
-    output_to_file(model_metric_list, output_file)
+    func.output_to_file(model_metric_list, output_file)
     
 
 '''
@@ -254,19 +259,21 @@ def draw_single_roc_curve(tpr, fpr, auc, output_img_file=None):
         print("Figure has been output plot to:",output_img_file)
     plt.close()
 
-def draw_multiple_roc_curve(tpr_list, fpr_list, auc_list, info_list, output_image_file=None):       
+def draw_multiple_roc_curve(tpr_list, fpr_list, auc_list, info_list, title_content='ROC curve', output_image_file=None):   
+    label_size = 16 #"x-large"
+    
     plt.figure(1,dpi=150)
-    plt.tick_params(labelsize="x-large")
+    plt.tick_params(labelsize= label_size)
     plt.plot([0, 1], [0, 1], 'k--')
         
     for roc_i in range(len(auc_list)):
         plt.plot(fpr_list[roc_i], tpr_list[roc_i], lw=2, alpha=0.3, 
                  label='%s (AUC = %0.3f)' % (info_list[roc_i], auc_list[roc_i]))
 
-    plt.xlabel('False positive rate',fontsize="xx-large")
-    plt.ylabel('True positive rate',fontsize="xx-large")
-    plt.title('ROC curve',fontsize="xx-large")
-    plt.legend(loc='best',fontsize="small")
+    plt.xlabel('False positive rate',fontsize=label_size)
+    plt.ylabel('True positive rate', fontsize=label_size)
+    plt.title(title_content,fontsize=label_size)
+    plt.legend(loc='best',fontsize=label_size/2)
     
     if output_image_file != None:
         plt.savefig(output_image_file, facecolor='w', edgecolor='w', bbox_inches = 'tight')
@@ -276,7 +283,7 @@ def draw_multiple_roc_curve(tpr_list, fpr_list, auc_list, info_list, output_imag
     
     ## draw the zoomed in figure
     plt.figure(2,dpi=150)
-    plt.tick_params(labelsize="x-large")
+    plt.tick_params(labelsize=label_size)
     plt.xlim(0, 0.3)
     plt.ylim(0.7, 1)
     plt.plot([0, 1], [0, 1], 'k--')
@@ -285,10 +292,10 @@ def draw_multiple_roc_curve(tpr_list, fpr_list, auc_list, info_list, output_imag
         plt.plot(fpr_list[roc_i], tpr_list[roc_i], lw=2, alpha=0.3, 
                  label='%s (AUC = %0.3f)' % (info_list[roc_i], auc_list[roc_i]))
 
-    plt.xlabel('False positive rate',fontsize="xx-large")
-    plt.ylabel('True positive rate',fontsize="xx-large")
-    plt.title('ROC curve (zoomed in at top left)',fontsize="xx-large")
-    plt.legend(loc='best',fontsize="small")
+    plt.xlabel('False positive rate',fontsize=label_size)
+    plt.ylabel('True positive rate',fontsize=label_size)
+    plt.title(title_content ,fontsize=label_size) #'(zoomed in at top left)'
+    plt.legend(loc='best',fontsize=label_size/2)
     
     if output_image_file != None:
         path, filename, file_extension = func.extractFilePathNameExtension(output_image_file)
@@ -310,7 +317,7 @@ def draw_kfold_roc_curve(tpr_list, tpr_interp_list, fpr_list, auc_list, output_i
         print("length of auc_list:",len(auc_list))
         
     plt.figure(1,dpi=150)
-    plt.tick_params(labelsize="x-large")
+    plt.tick_params(labelsize=16)
     plt.plot([0, 1], [0, 1], 'k--')
         
     mean_fpr = np.linspace(0, 1, 100)
@@ -334,10 +341,10 @@ def draw_kfold_roc_curve(tpr_list, tpr_interp_list, fpr_list, auc_list, output_i
         plt.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=.2,
                         label=r'$\pm$ 1 std. dev.')
 
-    plt.xlabel('False positive rate',fontsize="xx-large")
-    plt.ylabel('True positive rate',fontsize="xx-large")
-    plt.title('ROC curve',fontsize="xx-large")
-    plt.legend(loc='best',fontsize="large")
+    plt.xlabel('False positive rate',fontsize=16)
+    plt.ylabel('True positive rate',fontsize=16)
+    plt.title('ROC curve',fontsize=16)
+    plt.legend(loc='best',fontsize=9)
     if output_image_file != None:
         plt.savefig(output_image_file, facecolor='w', edgecolor='w', bbox_inches = 'tight')
         print("ROC curve output plot to:",output_image_file)
@@ -363,10 +370,10 @@ def draw_kfold_roc_curve(tpr_list, tpr_interp_list, fpr_list, auc_list, output_i
             label=r'Mean ROC (AUC = %0.2f $\pm$ %0.2f)' % (mean_auc, std_auc),
             lw=2, alpha=.8)
 
-    plt.xlabel('False positive rate',fontsize="xx-large")
-    plt.ylabel('True positive rate',fontsize="xx-large")
-    plt.title('ROC curve (zoomed in at top left)',fontsize="xx-large")
-    plt.legend(loc='best',fontsize="large")
+    plt.xlabel('False positive rate',fontsize=16)
+    plt.ylabel('True positive rate',fontsize=16)
+    plt.title('ROC curve (zoomed in at top left)',fontsize=16)
+    plt.legend(loc='best',fontsize=9)
     if output_image_file != None:
         path, filename, file_extension = func.extractFilePathNameExtension(output_image_file)
         image_zoom_file = path + filename + "_zoom" +file_extension

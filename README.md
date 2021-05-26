@@ -121,7 +121,7 @@ cnv_list=${project_dir}/xhmm.xcnv # other CNV caller's output
 output_dir=${project_dir}
 ```
 
-- Option 1. Generate images by single thread
+- Option 1. Generate images via single thread
 
 ```bash
 python ${script_dir}cnv_espresso.py images \
@@ -132,7 +132,7 @@ python ${script_dir}cnv_espresso.py images \
 ```
 
 - Option 2. Generate images by cluster
-  Note: please modify the script path in the `cluster_images.sh` at first.
+Note: please modify the path of script in the `cluster_images.sh` file at first.
 
 ```bash
 qsub -t 1-1000 ${script_dir}cluster_images.sh \
