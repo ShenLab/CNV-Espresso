@@ -127,7 +127,8 @@ def loadRD(filename):
     rd_matrix = np.loadtxt(filename, delimiter='\t', skiprows=0,
             dtype={'names': ('chr', 'start', 'stop','RD'),
                 'formats': ('U4', np.int, np.int, np.float)}) 
-    return rd_matrix
+    rd_matrix_sort = np.sort(rd_matrix, order=['chr', 'start'] )
+    return rd_matrix_sort
 
 def loadNormRD(filename):
     if os.path.splitext(filename)[-1][1:] == "gz":
@@ -162,8 +163,8 @@ def loadWindows(windows_filename):
         except:
             print("[Error] Please check the windows.bed file.")
             pdb.set_trace()
-
-    return targets
+    targets_sort = np.sort(targets, order=['chr', 'start'])        
+    return targets_sort
 
 def fetch_norm_rd(sampleID, sample_norm_file):
     df = pd.read_table(sample_norm_file,low_memory=False,header=None, sep='\t',

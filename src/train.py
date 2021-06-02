@@ -24,7 +24,7 @@ import tensorflow as tf
 from tensorflow import keras
 import keras.preprocessing
 from keras.models import Sequential, Model
-from keras.utils import to_categorical
+#from keras.utils import to_categorical #tf2.5.0 does not support
 from keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten
 from keras.models import load_model
 from keras.callbacks import EarlyStopping
@@ -123,7 +123,7 @@ def cnn_train(true_del_file, true_dup_file, false_del_file, false_dup_file, use_
     combined_img /= 255
 
     # Change the labels from integer to categorical data
-    combined_label_one_hot = to_categorical(combined_label)
+    combined_label_one_hot = tf.keras.utils.to_categorical(combined_label)
 
 
     # ## Find the unique numbers from the train labels

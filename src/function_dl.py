@@ -30,7 +30,7 @@ from tensorflow import keras
 import keras.preprocessing
 from keras.models import Sequential
 from keras.models import Model
-from keras.utils import to_categorical
+#from keras.utils import to_categorical
 from keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten
 from keras.models import load_model
 from keras.callbacks import EarlyStopping
@@ -197,7 +197,7 @@ def confusion_matrix(model, test_img, test_label, nClasses, output_img_file=None
     if test_label.ndim >1:
         test_label_one_hot = test_label
     else:
-        test_label_one_hot = to_categorical(test_label)
+        test_label_one_hot = tf.keras.utils.to_categorical(test_label)
     # Take the class with the highest probability from the test predictions
     max_pred_test = np.argmax(test_pred, axis=1)
     max_label_test = np.argmax(test_label_one_hot, axis=1)
