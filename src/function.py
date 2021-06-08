@@ -167,13 +167,26 @@ def loadWindows(windows_filename):
     return targets_sort
 
 def fetch_norm_rd(sampleID, sample_norm_file):
-    df = pd.read_table(sample_norm_file,low_memory=False,header=None, sep='\t',
-                       names=['chr', 'start','end','GC','RD',sampleID])
+    #df = pd.read_table(sample_norm_file,low_memory=False,header=None, sep='\t',
+    #                   names=['chr', 'start','end','GC','RD',sampleID])
+    df = pd.read_table(sample_norm_file,low_memory=False,header=None, sep='\t')
+    if df.shape[1] == 6: # CNV-Espresso's format
+        df.columns = ['chr', 'start','end','GC','RD',sampleID]
+    elif df.shape[1] == 4: # CLAMMS' format
+        df.columns = ['chr', 'start','end',sampleID]
+    else:
+        pdb.set_trace()  
     return df[sampleID].to_frame()
 
 def fetch_sampleID_from_filepath(filepath):
     filepath,tempfilename = os.path.split(filepath[0])
-    sampleID = tempfilename.replace(".cov.bed.norm.gz","")
+    #sampleID = tempfilename.replace(".cov.bed.norm.gz","")
+    sampleID = tempfilename.replace("coverage","")
+    sampleID = sampleID.replace("cov","")
+    sampleID = sampleID.replace("bed","")
+    sampleID = sampleID.replace("norm","")
+    sampleID = sampleID.replace("gz","")
+    sampleID = sampleID.replace(".","")
     return sampleID
 
 def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixed_win_num):
@@ -264,7 +277,7 @@ def fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, cnv_chr, cnv_start, cn
     else:
         print("[Error] mixed norm files form both CNV-Espresso and CLAMMS ?")
         pdb.set_trace()
-
+    
 def fetch_relative_file_path(RD_norm_dir, sampleID, suffix):
     sample_rd_file = None
     sample_rd_likely_file = RD_norm_dir+sampleID+'.*.'+suffix

@@ -46,7 +46,6 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     output_EntireCNV_image_dir  = output_path + '/images/' 
     output_SplitCNV_image_dir   = output_path + '/images_split_cnvs/'
 
-
     sampleID  = row[col_sampleID]
     try:
         cnv_interval = row[col_cnv_interval]
@@ -110,11 +109,10 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     ## Fetch Read depth data for reference samples in terms of CNV boundary       
     print("  --Step2. Fetching RD data for reference samples ...")
     ref_samples_file = func.fetch_relative_file_path(ref_samples_dir, sampleID,'txt')
-
+    
     if not os.path.exists(ref_samples_file):
         print("    -[Error]: error in reference samples related file for %s in %s"%(sampleID, ref_samples_dir))
         exit(0)
-  
     reference_RD_df = func.fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, 
                                                     cnv_chr, figure_left, figure_right, 
                                                     fixed_win_num, corr_threshold)
