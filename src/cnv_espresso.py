@@ -17,6 +17,7 @@ from windows import *
 from normalization import * 
 from reference import *
 from images import *
+from images_human_view import *
 from train import *
 from predict import *
 
@@ -69,6 +70,22 @@ def images(args):
         sge_task_id = 'all'
 
     generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id)
+
+def images_human_view(args):
+    RD_norm_dir     = args.rd_norm_dir
+    ref_samples_dir = args.ref_dir
+    cnv_file        = args.cnv_list
+    vcf_file        = args.vcf_file
+    output_path     = args.output
+    corr_threshold  = float(args.corr_threshold)
+    flanking        = args.flanking
+    split_img       = args.split
+    try:
+        sge_task_id = int(args.specific)
+    except:
+        sge_task_id = 'all'
+
+    generate_images_human_view(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id)
 
 def train(args):
     true_del_file    = args.true_del
@@ -128,6 +145,19 @@ img_parser.add_argument('--flanking', required=False, default=False, help='The f
 img_parser.add_argument('--split', required=False, default=False, help='Generate split sliding window images for CNVs')
 img_parser.add_argument('--specific', required=False, default=False, help='Generate ONE image for a specific CNV in the list file')
 img_parser.set_defaults(func=images)
+
+#Generate images for human view
+img_parser = subparsers.add_parser('images_human_view', help="Encode CNV predictions into images for human review")
+img_parser.add_argument('--rd_norm_dir', required=True, help='The folder for normalized read depth files')
+img_parser.add_argument('--ref_dir', required=True, help='The folder for reference samples')
+img_parser.add_argument('--cnv_list', required=True, help='Please input a CNV prediction list')
+img_parser.add_argument('--vcf_file', required=False, help='Please input a VCF file which include SNV information for this region')
+img_parser.add_argument('--output', required=True, help='Output folder for images')
+img_parser.add_argument('--corr_threshold', required=False, default=0.7, help='The folder for normalized read depth files')
+img_parser.add_argument('--flanking', required=False, default=False, help='The folder for normalized read depth files')
+img_parser.add_argument('--split', required=False, default=False, help='Generate split sliding window images for CNVs')
+img_parser.add_argument('--specific', required=False, default=False, help='Generate ONE image for a specific CNV in the list file')
+img_parser.set_defaults(func=images_human_view)
 
 #Train the CNN model
 cnn_parser = subparsers.add_parser('train', help="Train the CNN model from scratch")

@@ -93,9 +93,9 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
 
     ## Confirm the boundries
     if flanking == True or flanking == 'True':
-        cnv_length   = cnv_end - cnv_start + 1
+        cnv_length   = cnv_end   - cnv_start +1
         figure_left  = cnv_start - cnv_length/2
-        figure_right = cnv_end + cnv_length/2
+        figure_right = cnv_end   + cnv_length/2
     else:
         figure_left  = cnv_start
         figure_right = cnv_end
@@ -121,24 +121,54 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     print("  --Step3. Illustrating an image for the entire CNV ...")
     title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type + \
                  " "+ str((cnv_end-cnv_start)/1000) + 'kb'+ " #targets:"+str(cnv_num_targets) + \
-                 " #wins:" + str(len(RD_cnv_region_df)) + "\nCANOES:"+cnv_canoes + " XHMM:"+ \
-                 cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:"+cnv_num_carriers + \
-                 " CN-Learn:"+cnv_CNLearn_str + " GSD_Label:"+cnv_gsd_str
+                 " #wins:" + str(len(RD_cnv_region_df))
 
     image_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
-                 "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region_df))+"wins_"+cnv_type+".png"
+                 "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region_df))+"wins_"+cnv_type+".pdf"
 
     fig = plt.figure(dpi=150,figsize=(10, 7)) 
     ax_rd = fig.subplots(nrows=1, ncols=1)
 
-    ### plot reference samples
-    for sample_reader in reference_RD_df["sample"].unique():
-                ref_sample_df = reference_RD_df[reference_RD_df["sample"]==sample_reader]
-                ax_rd.plot((ref_sample_df["start"]+ref_sample_df["end"])/2, ref_sample_df["RD_norm"],
-                            color='grey', marker='.', linewidth=0.2)
+    ### Calculate the means and sigmas of ref samples for each target region
+    target_start_uni = reference_RD_df['start'].unique()
+    target_stop_uni  = reference_RD_df['end'].unique()
+    vector = np.vectorize(np.float)
+    target_pos_uni   = vector(target_start_uni+ (target_stop_uni - target_start_uni + 1)/2)
+    
+    ref_ribbon_dict = {}
+    for target_i in range(0,len(target_start_uni)):
+        target_i_mu    = reference_RD_df[reference_RD_df['start']==target_start_uni[target_i]]['RD_norm'].mean()
+        target_i_sigma = reference_RD_df[reference_RD_df['start']==target_start_uni[target_i]]['RD_norm'].std()
+        ref_ribbon_dict[target_start_uni[target_i]] = [target_i_mu, target_i_sigma]
 
+    ### assembly the essential data (target, mu, sigma)
+
+    ### remove outliers (where mu or sigma equals 0)
+
+    ### determine the limit of image
+    
+    ### plot the ribbion
+    key_list = [key for key in ref_ribbon_dict]
+
+    mu_list, sigma_list = [], []
+    for key in key_list:
+        mu_list.append(ref_ribbon_dict[key][0])
+        sigma_list.append(ref_ribbon_dict[key][1])
+
+    pdb.set_trace()
+    ax_rd.fill_between(np.array(target_pos_uni), -2*np.array(sigma_list), 2*np.array(sigma_list), alpha=0.2)
+    ax_rd.fill_between(np.array(target_pos_uni), -np.array(sigma_list), np.array(sigma_list), alpha=0.4)
+
+#    ### plot reference samples
+#    for sample_reader in reference_RD_df["sample"].unique():
+#        ref_sample_df = reference_RD_df[reference_RD_df["sample"]==sample_reader]
+#        ax_rd.plot((ref_sample_df["start"]+ref_sample_df["end"])/2, ref_sample_df["RD_norm"],
+#                   color='grey', marker='.', linewidth=0.2)
+#
     ### plot case sample
-    ax_rd.plot((RD_cnv_region_df["start"]+RD_cnv_region_df["end"])/2, RD_cnv_region_df["RD_norm"], \
+#    ax_rd.plot((RD_cnv_region_df["start"]+RD_cnv_region_df["end"])/2, RD_cnv_region_df["RD_norm"], \
+#                color=case_sample_color , marker='o', linewidth=2)
+    ax_rd.plot(target_pos_uni, (RD_cnv_region_df["RD_norm"]-np.array(mu_list))/np.array(mu_list), \
                 color=case_sample_color , marker='o', linewidth=2)
     ax_rd.set_title(title_info)
 
@@ -227,7 +257,7 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
         cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
         lock_flag.release()
 
-def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id):
+def generate_images_human_view(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id):
     try:
         sge_task_id = int(sge_task_id)
     except:
@@ -242,8 +272,8 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
     
     ## Output cnv info file with image path
     '''
-    Idea: for the very beginning, copy the cnv_file to cnv_w_img_file, then
-          once the cnv_w_img_file exist, insert/update each img path into the corresponding cell.
+    Idea: at the very beginning, just copy the cnv_file to cnv_w_img_file, then
+          once the cnv_w_img_file existed, insert/update each img path into the corresponding cell.
           Note: to avoid the file writing conflict, we input and output it w/ img path at the end.
     '''
     cnv_info_w_img_file = output_path + '/cnv_info_w_img.csv'
@@ -273,7 +303,7 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
     col_cnv_numCarriers = func.fetch_colName(['Num_Carriers(inGivenCohort)'], cnv_data_header)[0]
 
     col_dict = {
-        'col_sampleID'     : col_sampleID,
+        'col_sampleID'     : col_sampleID, 
         'col_cnv_interval' : col_cnv_interval,
         'col_cnv_chr'      : col_cnv_chr,
         'col_cnv_start'    : col_cnv_start,

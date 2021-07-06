@@ -217,12 +217,14 @@ def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixe
     RD_fetched_df_tmp.loc[:, 'fixed_win_num'] = [val for val in np.arange(1,math.ceil((len(RD_fetched_df_tmp)/fixed_win_num))+1) for i in range(fixed_win_num)][0:len(RD_fetched_df_tmp)]
     RD_fetched_df = RD_fetched_df_tmp
     del RD_fetched_df_tmp
+
     # change the type of columns
-    RD_fetched_df[["start"]] = RD_fetched_df[["start"]].astype(int)
-    RD_fetched_df[["end"]] = RD_fetched_df[["end"]].astype(int)
+    RD_fetched_df[["start"]]   = RD_fetched_df[["start"]].astype(int)
+    RD_fetched_df[["end"]]     = RD_fetched_df[["end"]].astype(int)
     RD_fetched_df[["RD_norm"]] = RD_fetched_df[["RD_norm"]].astype(float)
+    
     try:
-        RD_fetched_df[["GC"]] = RD_fetched_df[["GC"]].astype(float)
+        RD_fetched_df[["GC"]]     = RD_fetched_df[["GC"]].astype(float)
         RD_fetched_df[["RD_raw"]] = RD_fetched_df[["RD_raw"]].astype(float)
     except:
         # Norm files from CLAMMS do not contain 'GC' and 'RD_raw' columns

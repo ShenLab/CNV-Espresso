@@ -88,10 +88,10 @@ python ${script_dir}cnv_espresso.py normalization \
 
 ```bash
 windows_file=${project_dir}/windows.bed
-RD_list=${project_dir}/sample_raw_rd.list
+RD_list=${project_dir}/sample_raw_rd.txt
 output_dir=${project_dir}/norm/
 
-# Suppose we want to process 1000 samples
+# Assuming that we want to process 1000 samples
 qsub -t 1-1000 ${script_dir}cluster_gc_norm.sh \
     ${windows_file} ${RD_list} ${output_dir}
 ```
@@ -99,13 +99,13 @@ qsub -t 1-1000 ${script_dir}cluster_gc_norm.sh \
 ### Step 4. Select reference samples
 
 ```bash
-ls ${project_dir}/norm/*.gz > ${project_dir}/sample_norm_rd.list
+ls ${project_dir}/norm/*.gz > ${project_dir}/sample_norm_rd.txt
 ```
 
 ```bash
 python ${script_dir}cnv_espresso.py reference \
     --project_dir ${project_dir} \
-    --norm_list   ${project_dir}/sample_norm_rd.list \
+    --norm_list   ${project_dir}/sample_norm_rd.txt \
     --num_ref     100 \
     --corr_threshold -1 
 ```

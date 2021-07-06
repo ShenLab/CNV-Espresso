@@ -5,8 +5,8 @@ import pdb
 
 '''
 TBD: 
-        1. Support to take an exist corr_matrix. There is no need to calculate the matrix for each time.
-        2. Output zipped ref.sample.txt directly. and the following functions should support to take zipped file directly.
+        1. Support to take an external corr_matrix directly. There is no need to calculate the matrix for each time.
+        2. Output zipped ref.sample.txt directly. Meanwhile, the following functions should support to take zipped file directly.
 '''
 
 def reference_selection(project_path, norm_list_file, num_ref, corr_threshold):
@@ -31,7 +31,6 @@ def reference_selection(project_path, norm_list_file, num_ref, corr_threshold):
         ## convert to nparray to accelerate the speed
         combined_np_array = np.hstack(combined_list)
         combined_df       = pd.DataFrame(combined_np_array,columns=sampleID_list)
-        func.showDateTime()
 
         # correlation matrix
         func.showDateTime()
