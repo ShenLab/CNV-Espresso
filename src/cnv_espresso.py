@@ -80,12 +80,15 @@ def images_human_view(args):
     corr_threshold  = float(args.corr_threshold)
     flanking        = args.flanking
     split_img       = args.split
+    trio            = args.trio
+    pedigree_file   = args.pedigree
     try:
         sge_task_id = int(args.specific)
     except:
         sge_task_id = 'all'
 
-    generate_images_human_view(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id)
+    generate_images_human_view(RD_norm_dir, ref_samples_dir, cnv_file, vcf_file, output_path, corr_threshold, flanking, \
+                               split_img, sge_task_id, trio, pedigree_file)
 
 def train(args):
     true_del_file    = args.true_del
@@ -157,6 +160,8 @@ img_parser.add_argument('--corr_threshold', required=False, default=0.7, help='T
 img_parser.add_argument('--flanking', required=False, default=False, help='The folder for normalized read depth files')
 img_parser.add_argument('--split', required=False, default=False, help='Generate split sliding window images for CNVs')
 img_parser.add_argument('--specific', required=False, default=False, help='Generate ONE image for a specific CNV in the list file')
+img_parser.add_argument('--trio', required=False, default=False, help='Trio mode or single sample mode')
+img_parser.add_argument('--pedigree', required=False, default=False, help='If in trio mode, a pedigree file is required')
 img_parser.set_defaults(func=images_human_view)
 
 #Train the CNN model

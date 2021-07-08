@@ -111,6 +111,57 @@ def fetch_colName(keyWord_list, colName_list):
     else:
         return [None, None]
 
+def parse_pedigreeFile(file_name):
+    unaffected_parents_list = []
+    try:
+        fp = open(file_name,'r')
+        row_num = 0
+        ped_indiv_dict = {}
+        ped_family_dict = {}
+        for reader in fp:
+            row_num += 1
+            reader = reader.strip()
+            reader = reader.split('\t')
+            FamilyID = reader[0]
+            IndividualID = reader[1]
+            PaternalID = reader[2]
+            MaternalID = reader[3]
+            Sex = reader[4]
+            Phenotype = reader[5]
+            if len(reader) == 7:
+                Role = reader[6]
+                ped_indiv_dict[IndividualID] = [FamilyID, IndividualID, PaternalID, MaternalID, Sex, Phenotype, Role]
+                if FamilyID in ped_family_dict:
+                    ped_family_dict[FamilyID].append([FamilyID, IndividualID, PaternalID, MaternalID, Sex, Phenotype, Role])
+                else:
+                    ped_family_dict[FamilyID] = [[FamilyID, IndividualID, PaternalID, MaternalID, Sex, Phenotype, Role]]
+            elif len(reader) >= 8:
+                Role = reader[6]
+                Ancestry = reader[7]
+                ped_indiv_dict[IndividualID] = [FamilyID, IndividualID, PaternalID, MaternalID, Sex, Phenotype, Role, Ancestry]
+                if FamilyID in ped_family_dict:
+                    ped_family_dict[FamilyID].append([FamilyID, IndividualID, PaternalID, MaternalID, Sex, Phenotype, Role, Ancestry])
+                else:
+                    ped_family_dict[FamilyID] = [[FamilyID, IndividualID, PaternalID, MaternalID, Sex, Phenotype, Role, Ancestry]]
+            else:
+                ped_indiv_dict[IndividualID] = [FamilyID, IndividualID, PaternalID, MaternalID, Sex, Phenotype]
+                if FamilyID in ped_family_dict:
+                    ped_family_dict[FamilyID].append([FamilyID, IndividualID, PaternalID, MaternalID, Sex, Phenotype])
+                else:
+                    ped_family_dict[FamilyID] = [[FamilyID, IndividualID, PaternalID, MaternalID, Sex, Phenotype]]
+        time_stamp = datetime.datetime.now()
+        print(time_stamp.strftime('%Y.%m.%d-%H:%M:%S'),"\tPedigree file %s imported."%file_name)
+        return [ped_indiv_dict, ped_family_dict]
+    except:
+        print('Error df.parse_pedigreeFile function when openning %s'%file_name)
+        return [None, None]
+
+def getParentsID(sampleID, ped_file):
+    [ped_indiv_dict, ped_family_dict] = parse_pedigreeFile(ped_file)
+    paternalID = ped_indiv_dict[sampleID][2]
+    maternalID = ped_indiv_dict[sampleID][3]
+    return([paternalID, maternalID])
+
 def getHeader(input_file):
     header_list = []
     fp = open(input_file)
@@ -189,14 +240,15 @@ def fetch_sampleID_from_filepath(filepath):
     sampleID = sampleID.replace(".","")
     return sampleID
 
-def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixed_win_num):
+def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixed_win_num, colname):
     '''
     Aim: Fetch RD signal from tabix file 
     [Update] 2021.05.18 compatible with both CNV-Espresso and CLAMMS's normlized file
+    [Update] 2021.07.07 add colname as a variable
     '''
     RD_norm_file = fetch_relative_file_path(RD_norm_dir, sampleID,'gz')
     if not os.path.exists(RD_norm_dir):
-        print('No tabular file: %s'%RD_norm_file)
+        print('No tabular file: %s'%RD_norm_file) 
         return ["No tabular file"]
     if not os.path.exists(RD_norm_file+'.tbi'):
         pysam.tabix_index(RD_norm_file, seq_col=0, start_col=1, end_col=2) # Need to add '-p bed'
@@ -205,11 +257,11 @@ def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixe
     RD_fetched_data = f.fetch(cnv_chr, int(cnv_start), int(cnv_end), parser=pysam.asTuple())
     RD_fetched_df = pd.DataFrame(data=RD_fetched_data)
     if RD_fetched_df.shape[1] == 6: # for CNV-Espresso normlized file
-        RD_fetched_df.columns = ['chr', 'start', 'end', 'GC', 'RD_raw', 'RD_norm']
+        RD_fetched_df.columns = ['chr', 'start', 'end', 'GC', 'RD_raw', colname]
     elif RD_fetched_df.shape[1] == 4: # for CLAMMS normlized file
-        RD_fetched_df.columns = ['chr', 'start', 'end', 'RD_norm']
+        RD_fetched_df.columns = ['chr', 'start', 'end', colname]
     else:
-        print("[Error] in the format of input file.")
+        print("[Error] in the format of input file.") 
         pdb.set_trace()
 
     # add a new column as target groups
@@ -221,7 +273,7 @@ def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixe
     # change the type of columns
     RD_fetched_df[["start"]]   = RD_fetched_df[["start"]].astype(int)
     RD_fetched_df[["end"]]     = RD_fetched_df[["end"]].astype(int)
-    RD_fetched_df[["RD_norm"]] = RD_fetched_df[["RD_norm"]].astype(float)
+    RD_fetched_df[[colname]]   = RD_fetched_df[[colname]].astype(float)
     
     try:
         RD_fetched_df[["GC"]]     = RD_fetched_df[["GC"]].astype(float)
@@ -253,7 +305,7 @@ def fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, cnv_chr, cnv_start, cn
     for index, row in ref_samplesID_df.iterrows():  
         ref_sampleID = row[0]
         try:
-            ref_RD_cnv_region = fetchRDdata_byTabix(RD_norm_dir, ref_sampleID, cnv_chr, cnv_start, cnv_end, fixed_win_num)
+            ref_RD_cnv_region = fetchRDdata_byTabix(RD_norm_dir, ref_sampleID, cnv_chr, cnv_start, cnv_end, fixed_win_num,'SampleNormRD')
             # add a new column as sampleID
             RD_cnv_region_tmp = ref_RD_cnv_region.copy()
             RD_cnv_region_tmp.loc[:, 'sample'] = [ref_sampleID]*len(ref_RD_cnv_region)
