@@ -2,9 +2,11 @@ import function as func
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 import seaborn as sns
 import pdb
 import os
+import re
 import math
 import vcf
 import pysam
@@ -114,6 +116,7 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
         cnv_start = int(row[col_cnv_start])
         cnv_end   = int(row[col_cnv_end])
     cnv_type  = row[col_cnv_type]
+    cnv_type  = re.sub(r'[^\w\s]','',cnv_type)
 
     if cnv_type == 1:
         cnv_type = "DEL"
@@ -194,12 +197,8 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
     ## plot the entire cnv into one image
     ################################################################
     print("  --Step3. Illustrating an image for the entire CNV ...")
-    title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type + \
-                 " "+ str((cnv_end-cnv_start)/1000) + 'kb'+ " #targets:"+str(cnv_num_targets) + \
-                 " #wins(all in the image):" + str(len(RD_cnv_region_df))
-
-    image_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
-                 "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region_df))+"wins_"+cnv_type+".pdf"
+    title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type +" "+ str((cnv_end-cnv_start)/1000) + 'kb'
+    image_file = str(index+1).zfill(len(str(cnv_data_df.shape[0])))+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_type+".svg"
 
     ### Calculate the means and sigmas of ref samples for each target region
     '''
@@ -242,14 +241,13 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
     ### Preprocessing
     fig   = plt.figure(dpi=150,figsize=(10, 10)) 
     ax_rd, ax_baf = fig.subplots(nrows=2, ncols=1, sharex=True, sharey=False)
-    
     ax_rd.axvspan(xmin=cnv_start, xmax=cnv_end, facecolor='y', alpha=0.1)
     Y_MAX =  1.1
     Y_MIN = -1.1
 
     ### plot the ribbion
-    ax_rd.fill_between(np.array(essential_df['position']), -2*np.array(essential_df['sigma']), 2*np.array(essential_df['sigma']), color='lightgrey', alpha=0.3)
-    ax_rd.fill_between(np.array(essential_df['position']), -1*np.array(essential_df['sigma']), 1*np.array(essential_df['sigma']), color='darkgrey',  alpha=0.3)
+    ax_rd.fill_between(np.array(essential_df['position']), -2*np.array(essential_df['sigma']), 2*np.array(essential_df['sigma']), color='lightgrey', alpha=0.8)
+    ax_rd.fill_between(np.array(essential_df['position']), -1*np.array(essential_df['sigma']), 1*np.array(essential_df['sigma']), color='darkgrey',  alpha=0.8)
 
     ### plot associations
     ax_rd.axhline(y= 0.5, linestyle='dashed', color='dimgrey', alpha=.5)
@@ -257,20 +255,24 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
     ax_rd.set_ylim([Y_MIN, Y_MAX])
     ax_rd.set_xlim([figure_left, figure_right])
     sns.rugplot(data=essential_df, x="position", color='black', ax=ax_rd)
-    ax_rd.set_title(title_info)
+    ax_rd.set_title(title_info, fontweight='heavy')
 
     ### plot case sample
     if str(trio).upper() == 'TRUE':
         ax_rd.plot(essential_df['position'], (essential_df['PaternalNormRD']-essential_df['mu'])/essential_df['mu'], \
-                    color='b', markerfacecolor='none', marker='.', markersize=10, linewidth=1, alpha=0.4)
+                    color='b', markerfacecolor='none', marker='.', markersize=10, linewidth=1, alpha=0.4, label='Father')
         ax_rd.plot(essential_df['position'], (essential_df['MaternalNormRD']-essential_df['mu'])/essential_df['mu'], \
-                    color='g', markerfacecolor='none', marker='.', markersize=10, linewidth=1, alpha=0.4)
+                    color='g', markerfacecolor='none', marker='.', markersize=10, linewidth=1, alpha=0.4, label='Mother')
         ax_rd.plot(essential_df['position'], (essential_df['SampleNormRD']-essential_df['mu'])/essential_df['mu'], \
-                    color='r', markerfacecolor='none', marker='.', markersize=10, linewidth=1, alpha=0.8)
+                    color='r', markerfacecolor='none', marker='.', markersize=10, linewidth=1, alpha=0.8, label='Offspring')
+        ax_rd.legend(loc='upper right')
 
     else:
         ax_rd.plot(essential_df['position'], (essential_df['SampleNormRD']-essential_df['mu'])/essential_df['mu'], \
                     color='r', markerfacecolor='none', marker='.', markersize=10, linewidth=1, alpha=0.8)
+    
+    ax_rd.set_ylabel('Norm depth relative to diploid', fontsize=15, fontweight='normal')
+    ax_rd.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1, decimals=None, symbol='%', is_latex=False))
 
     ## BAF plot
     ### plot the line/area in background
@@ -281,14 +283,18 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
 
     ### plot the SNVs
     boundary_length = round((figure_right - figure_left+1)/1000, 2)
-    print("---> Getting SNV information and drawing BAF plot. Boundary for BAF: %s:%d-%d, %fkb."%(cnv_chr, figure_left, figure_right, boundary_length))
+    print("          Getting SNV information and drawing BAF plot. Boundary for BAF: %s:%d-%d, %fkb ..."%(cnv_chr, figure_left, figure_right, boundary_length))
     draw_baf_figure(ax_baf, vcf_file, sampleID,   cnv_chr, figure_left, figure_right, info='Offspring')
-    draw_baf_figure(ax_baf, vcf_file, paternalID, cnv_chr, figure_left, figure_right, info='Father')
-    draw_baf_figure(ax_baf, vcf_file, maternalID, cnv_chr, figure_left, figure_right, info='Mother')
+    if str(trio).upper() == 'TRUE':
+        draw_baf_figure(ax_baf, vcf_file, paternalID, cnv_chr, figure_left, figure_right, info='Father')
+        draw_baf_figure(ax_baf, vcf_file, maternalID, cnv_chr, figure_left, figure_right, info='Mother')
     ax_baf.set_xlim(figure_left, figure_right)
     ax_baf.set_ylim(-0.05,1.05)
+    ax_baf.set_xlabel('Chromosome position', fontsize=15, fontweight='normal')
+    ax_baf.set_ylabel('Alternative allele frequency', fontsize=15, fontweight='normal')
+    ax_baf.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1, decimals=None, symbol='%', is_latex=False))
 
-
+    fig.align_labels() 
     ### write the img path to the cnv_file_w_img_file
     print("  --Step4. Output image file to %s."%(output_EntireCNV_image_dir+image_file))
     img_path = output_EntireCNV_image_dir+image_file
