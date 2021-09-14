@@ -90,10 +90,14 @@ def loadImgs(cnv_list, img_width, img_height):
 '''
 Processing data
 '''
-def fetch_df_by_wins(data_df, data_img, data_label, min_win, max_win):
+def fetch_df_by_wins(data_df, data_img, data_label, min_win, max_win, sort=False):
     data_df = data_df.reset_index(drop=True)
     selected_data_df  = data_df[(data_df['Num_Targets_Wins']>=min_win) & (data_df['Num_Targets_Wins']<=max_win)]
+    
+    if sort != False:
+        selected_data_df = selected_data_df.sort_values(by=['Num_Targets_Wins'])
     selected_index    = selected_data_df.index
+    
     selected_data_img = data_img[selected_index]
     selected_label    = data_label[selected_index]
     if selected_index.shape[0] != selected_data_img.shape[0] != len(selected_label):
@@ -153,8 +157,7 @@ def output_model_metrics(model_name, loss, accuracy, f1_score, precision, recall
     model_metric_list.append(["precision:", precision])
     model_metric_list.append(["recall:", recall])
     model_metric_list.append(["f1_score:", f1_score])
-    func.output_to_file(model_metric_list, output_file)
-    
+    func.output_to_file(model_metric_list, output_file)  
 
 '''
 show results
