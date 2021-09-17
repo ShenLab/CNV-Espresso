@@ -305,7 +305,8 @@ def fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, cnv_chr, cnv_start, cn
     for index, row in ref_samplesID_df.iterrows():  
         ref_sampleID = row[0]
         try:
-            ref_RD_cnv_region = fetchRDdata_byTabix(RD_norm_dir, ref_sampleID, cnv_chr, cnv_start, cnv_end, fixed_win_num,'SampleNormRD')
+            ref_RD_cnv_region = fetchRDdata_byTabix(RD_norm_dir, ref_sampleID, cnv_chr, cnv_start, cnv_end, \
+                                                    fixed_win_num,'RD_norm')
             # add a new column as sampleID
             RD_cnv_region_tmp = ref_RD_cnv_region.copy()
             RD_cnv_region_tmp.loc[:, 'sample'] = [ref_sampleID]*len(ref_RD_cnv_region)
@@ -322,8 +323,30 @@ def fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, cnv_chr, cnv_start, cn
         except:
             print("    -[Error]: error in normalized reference RD file of %s in %s"%(ref_sampleID, RD_norm_dir))
     if ref_espresso_RD_df.shape[0] != 0 and ref_clamms_RD_df.shape[0] == 0:
+        # change the type of columns
+        ref_espresso_RD_df[["start"]]   = ref_espresso_RD_df[["start"]].astype(int)
+        ref_espresso_RD_df[["end"]]     = ref_espresso_RD_df[["end"]].astype(int)
+        ref_espresso_RD_df[["RD_norm"]] = ref_espresso_RD_df[["RD_norm"]].astype(float)
+        
+        try:
+            ref_espresso_RD_df[["GC"]]     = ref_espresso_RD_df[["GC"]].astype(float)
+            ref_espresso_RD_df[["RD_raw"]] = ref_espresso_RD_df[["RD_raw"]].astype(float)
+        except:
+            # Norm files from CLAMMS do not contain 'GC' and 'RD_raw' columns
+            pass
         return ref_espresso_RD_df
     elif ref_espresso_RD_df.shape[0] == 0 and ref_clamms_RD_df.shape[0] != 0:
+        # change the type of columns
+        ref_clamms_RD_df[["start"]]   = ref_clamms_RD_df[["start"]].astype(int)
+        ref_clamms_RD_df[["end"]]     = ref_clamms_RD_df[["end"]].astype(int)
+        ref_clamms_RD_df[["RD_norm"]] = ref_clamms_RD_df[["RD_norm"]].astype(float)
+        
+        try:
+            ref_clamms_RD_df[["GC"]]     = ref_clamms_RD_df[["GC"]].astype(float)
+            ref_clamms_RD_df[["RD_raw"]] = ref_clamms_RD_df[["RD_raw"]].astype(float)
+        except:
+            # Norm files from CLAMMS do not contain 'GC' and 'RD_raw' columns
+            pass
         return ref_clamms_RD_df
     elif ref_espresso_RD_df.shape[0] == 0 and ref_clamms_RD_df.shape[0] == 0:
         print("[Error] no reference sample or this is an outlier sample which has extremely low correlation with ref samples?")
