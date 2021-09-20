@@ -139,9 +139,6 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
 
         # transform to log and relative
         ref_sample_pos_df = (ref_sample_df["start"]+ref_sample_df["end"])/2
-        #ref_sample_relative_df = np.log1p(ref_sample_pos_df - np.min(ref_sample_pos_df))
-        #ref_RD_relative_df     = np.log1p(ref_sample_df["RD_norm"] - np.min(ref_sample_df["RD_norm"]))
-        #ax_rd.plot(ref_sample_df_relative_df, ref_RD_relative_df, color='grey', marker='.', linewidth=0.2)
         ref_pos_df_diff       = np.ediff1d(ref_sample_pos_df, to_begin=0)
         ref_pos_df_cumLogDiff = ref_sample_pos_df[0] + np.cumsum(np.log1p(ref_pos_df_diff))
         ref_RD_df_diff        = np.ediff1d(ref_sample_df["RD_norm"], to_begin=0)
@@ -151,9 +148,6 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     ### plot case sample
     #### Transform data (log and relative)
     case_sample_pos_df          = (RD_cnv_region_df["start"]+RD_cnv_region_df["end"])/2
-#    RD_cnv_region_pos_relative_df = np.log1p(RD_cnv_region_pos_df - np.min(RD_cnv_region_pos_df))
-#    RD_releative_df               = np.log1p(RD_cnv_region_df["RD_norm"] - np.min(RD_cnv_region_df["RD_norm"]))
-#    ax_rd.plot(RD_cnv_region_pos_relative_df, RD_releative_df, color=case_sample_color , marker='o', linewidth=2) 
     case_pos_df_diff = np.ediff1d(case_sample_pos_df, to_begin=0)
     case_pos_df_cumLogDiff = case_sample_pos_df[0] + np.cumsum(np.log1p(case_pos_df_diff))
     case_RD_df_diff = np.ediff1d(RD_cnv_region_df["RD_norm"], to_begin=0)
