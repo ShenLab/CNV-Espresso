@@ -39,24 +39,54 @@ cd ${project_dir}
   reference_file='/share/terra/rsrc/hg38/ref/genome.hg38rg.fa'
   cd ${project_dir}
   
+  # Step 2. Calculate Read depth for each sample
+  ## fix a sample 
+    sample_name='SP0000140'
+    bam_cram_file='/share/terra/xz2680/SPARK_30K/wes.DeDupedCRAMs/SP0000140.cram'
+    windows_file=${project_dir}/windows.bed
+    mkdir -p ${output_rd_dir}
+
+    sample_name='SP0065987'
+    bam_cram_file='/share/terra/xz2680/SPARK_30K/wes.DeDupedCRAMs/SP0065987.cram'
+    windows_file=${project_dir}/windows.bed
+    mkdir -p ${output_rd_dir}
+
+    mosdepth -n --fasta ${reference_file} --by ${windows_file} --mapq 30 ${output_rd_dir}/${sample_name} ${bam_cram_file}
+    zcat ${output_rd_dir}/${sample_name}.regions.bed.gz | cut -f1-3,5 | bgzip -c > ${output_rd_dir}/${sample_name}.cov.bed.gz
+    tabix -f -p bed ${output_rd_dir}/${sample_name}.cov.bed.gz
+
+    ### Step 3. GC normalization
+    python ${script_dir}cnv_espresso.py normalization \
+        --windows ${project_dir}/windows.bed \
+        --input   ${output_rd_dir}/SP0000140.cov.bed.gz \
+        --output  ${project_dir}/norm/
+
   # Step5
-  RD_norm_dir=${project_dir}/norm_clamms/
+  RD_norm_dir=${project_dir}/norm/
   ref_samples_dir=${project_dir}/ref_samples/
-  cnv_list=${project_dir}/spark_wes2_ultra_rare_cnvs.txt
-  output_dir=${project_dir}
+
+  cnv_list=${project_dir}/images_rare_3classes/0-entire_cnv_file_list/false_del_image_info.list
+  output_dir=${project_dir}/logDiffCumX_logY_false_del/
+
+  cnv_list=${project_dir}/images_rare_3classes/0-entire_cnv_file_list/false_dup_image_info.list
+  output_dir=${project_dir}/logDiffCumX_logY_false_dup/
+
+  cnv_list=${project_dir}/images_rare_3classes/0-entire_cnv_file_list/true_del_image_info.list
+  output_dir=${project_dir}/logDiffCumX_logY_true_del/
+
+  cnv_list=${project_dir}/images_rare_3classes/0-entire_cnv_file_list/true_dup_image_info.list
+  output_dir=${project_dir}/logDiffCumX_logY_true_dup/
+
+    python ${script_dir}cnv_espresso.py images \
+        --rd_norm_dir ${RD_norm_dir} \
+        --ref_dir     ${ref_samples_dir} \
+        --cnv_list    ${cnv_list} \
+        --output      ${output_dir}
+
 
   # Step7
   model_file='/home/rt2776/cnv_espresso/model/MobileNet_v1_fine_tuning_3classes.h5'
 
   ```
 
-
-### Step 2. Calculate Read depth for each sample
-
-- Option 1. A single sample example
-
-```bash
-sample_name='NA12878'
-bam_cram_file=/home/rt2776/1000GP/data/BAM/NA12878.mapped.ILLUMINA.bwa.CEU.exome.20121211.bam
-```
 

@@ -119,6 +119,12 @@ RD_norm_dir=${project_dir}/norm/
 ref_samples_dir=${project_dir}/ref_samples/
 cnv_list=${project_dir}/xhmm.xcnv # other CNV caller's output
 output_dir=${project_dir}
+
+python ${script_dir}cnv_espresso.py images \
+    --rd_norm_dir ${RD_norm_dir} \
+    --ref_dir     ${ref_samples_dir} \
+    --cnv_list    ${cnv_list} \
+    --output      ${output_dir}
 ```
 
 - Option 1. Generate images via single thread

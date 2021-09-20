@@ -64,12 +64,14 @@ def images(args):
     corr_threshold  = float(args.corr_threshold)
     flanking        = args.flanking
     split_img       = args.split
+    job_start       = args.start
     try:
         sge_task_id = int(args.specific)
     except:
         sge_task_id = 'all'
 
-    generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id)
+    generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, \
+                    flanking, split_img, sge_task_id, job_start)
 
 def images_human_view(args):
     RD_norm_dir     = args.rd_norm_dir
@@ -147,6 +149,7 @@ img_parser.add_argument('--corr_threshold', required=False, default=0.7, help='T
 img_parser.add_argument('--flanking', required=False, default=False, help='The folder for normalized read depth files')
 img_parser.add_argument('--split', required=False, default=False, help='Generate split sliding window images for CNVs')
 img_parser.add_argument('--specific', required=False, default=False, help='Generate ONE image for a specific CNV in the list file')
+img_parser.add_argument('--start', required=False, default=False, help='The number from which image is generated')
 img_parser.set_defaults(func=images)
 
 #Generate images for human view

@@ -20,7 +20,7 @@ CNV_INTERVAL    = global_var_dict['CNV_INTERVAL']
 CNV_TYPE        = global_var_dict['CNV_TYPE']
 NUM_TARGETS     = global_var_dict['NUM_TARGETS']
 GSD_LABEL       = global_var_dict['CNV_LABEL']
-PRE_LABEL       = global_var_dict['REF']
+REF_LABEL       = global_var_dict['REF']
 
 fixed_win_num = 3 # the number of targets per group
 color_del, color_dup = (0,0,1), (0,0,1) #blue for three classes labels
@@ -249,20 +249,20 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
         cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
         lock_flag.release()
 
-def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id):
+def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id, job_start):
     try:
         sge_task_id = int(sge_task_id)
     except:
         sge_task_id = 'all'
 
-    ## Output images and folders
+    ## Prepare for output images and folders
     output_EntireCNV_image_dir  = output_path + '/images/' 
     os.makedirs(output_EntireCNV_image_dir, exist_ok=True)
     if split_img == True:
         output_SplitCNV_image_dir   = output_path + '/images_split_cnvs/'
         os.makedirs(output_SplitCNV_image_dir, exist_ok=True)
     
-    ## Output cnv info file with image path
+    ## Prepare for cnv info file with image path
     '''
     Idea: for the very beginning, copy the cnv_file to cnv_w_img_file, then
           once the cnv_w_img_file exist, insert/update each img path into the corresponding cell.
@@ -273,10 +273,8 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
         #cnv_data_df = pd.read_table(cnv_file, header=0, sep=r'\,|\t', engine='python')
         cnv_data_df = pd.read_table(cnv_file)
         cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
-
-    ## CNV info
-    #cnv_data_df = pd.read_table(cnv_file, header=0, sep=r'\,|\t', engine='python')
-    cnv_data_df = pd.read_table(cnv_file)
+    else:
+        cnv_data_df = pd.read_csv(cnv_info_w_img_file)
 
     ## Parse header
     cnv_data_header  = cnv_data_df.columns.tolist()
@@ -287,7 +285,7 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
     col_cnv_end      = func.fetch_colName(CNV_END, cnv_data_header)[0]
     col_cnv_type     = func.fetch_colName(CNV_TYPE, cnv_data_header)[0]
     col_GSD_label    = func.fetch_colName(GSD_LABEL, cnv_data_header)[0]
-    col_PRE_label    = func.fetch_colName(PRE_LABEL, cnv_data_header)[0]
+    col_PRE_label    = func.fetch_colName(['PRE','PRED_LABEL'], cnv_data_header)[0]
     col_cnv_canoes   = func.fetch_colName(['CANOES','CANOES_RT'], cnv_data_header)[0]
     col_cnv_xhmm     = func.fetch_colName(['XHMM','XHMM_RT'], cnv_data_header)[0]
     col_cnv_clamms   = func.fetch_colName(['CLAMMS','CLAMMS_RT'], cnv_data_header)[0]
@@ -311,10 +309,16 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
     }
 
     if sge_task_id == False:
-        for index, row in cnv_data_df.iterrows(): 
-           index += 1
-           generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
-                            RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
+        if job_start == False:
+            for index, row in cnv_data_df.iterrows(): 
+               index += 1
+               generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
+                                RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
+        else:
+            for index, row in enumerate(cnv_data_df[int(job_start):]):
+               index += 1
+               generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
+                                RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
 
     else:
         generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
