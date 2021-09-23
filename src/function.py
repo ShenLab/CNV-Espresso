@@ -22,7 +22,7 @@ def global_variables():
         "CNV_START"   : ['CNV_START', 'PRED_START', 'START'],
         "CNV_END"     : ['CNV_STOP', 'STOP', 'PRED_END', 'END'],
         "CNV_TYPE"    : ['CNV_TYPE','TYPE','CNV'],
-        "NUM_TARGETS" : ['NUM_TARG','NUM_TARGETS','TARGETS'],
+        "NUM_TARGETS" : ['NUM_TARG','NUM_TARGETS','TARGETS','Num_Targets_Wins'],
         "CNV_LABEL"   : ['LABEL_VAL','LABEL','GSD_info'],
         "REF"         : ['ref','REF','Ref','Reference','hg19','hg38']
     }
@@ -260,8 +260,11 @@ def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixe
         RD_fetched_df.columns = ['chr', 'start', 'end', 'GC', 'RD_raw', colname]
     elif RD_fetched_df.shape[1] == 4: # for CLAMMS normlized file
         RD_fetched_df.columns = ['chr', 'start', 'end', colname]
+    elif RD_fetched_df.shape[1] == 0:
+        print("    --[Warnning] No target in %s %s:%d-%d"%(sampleID, cnv_chr, int(cnv_start), int(cnv_end)))
+        return RD_fetched_df
     else:
-        print("[Error] in the format of input file.") 
+        print("    --[Error] in the format of input file.") 
         pdb.set_trace()
 
     # add a new column as target groups
@@ -317,6 +320,8 @@ def fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, cnv_chr, cnv_start, cn
                 ref_espresso_RD_df = ref_espresso_RD_df.append(ref_RD_cnv_region)
             elif ref_RD_cnv_region.shape[1] == 4+2: # for CLAMMS
                 ref_clamms_RD_df = ref_clamms_RD_df.append(ref_RD_cnv_region)
+            elif ref_RD_cnv_region.shape[1] == 1: # no target in this region
+                pass
             else:
                 print("[Error] please check the norm file. ")
                 pdb.set_trace()
@@ -350,7 +355,7 @@ def fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, cnv_chr, cnv_start, cn
         return ref_clamms_RD_df
     elif ref_espresso_RD_df.shape[0] == 0 and ref_clamms_RD_df.shape[0] == 0:
         print("[Error] no reference sample or this is an outlier sample which has extremely low correlation with ref samples?")
-        pdb.set_trace()
+        return ref_espresso_RD_df
     else:
         print("[Error] mixed norm files form both CNV-Espresso and CLAMMS ?")
         pdb.set_trace()

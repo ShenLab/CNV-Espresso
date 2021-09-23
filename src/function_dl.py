@@ -174,10 +174,10 @@ def show_confusion_matrix(validations, predictions, labels, output_img_file=None
                 yticklabels=labels,
                 annot=True,
                 fmt="d")
-    plt.title("Confusion Matrix")
-    plt.ylabel("True Label")
-    plt.xlabel("Predicted Label")
-
+    plt.title("Confusion Matrix", fontsize=16)
+    plt.ylabel("True Label", fontsize=16)
+    plt.xlabel("Predicted Label", fontsize=16)    
+    
     if output_img_file != None:
         plt.savefig(output_img_file, facecolor='w', edgecolor='w', bbox_inches = 'tight')
         print("Figure has been output plot to:",output_img_file)
@@ -243,7 +243,13 @@ def draw_single_roc_curve(tpr, fpr, auc, output_img_file=None):
     plt.ylabel('True positive rate',fontsize="xx-large")
     plt.title('ROC curve',fontsize="xx-large")
     plt.legend(loc='best',fontsize="large")
+    
+    if output_img_file != None:
+        plt.savefig(output_img_file, facecolor='w', edgecolor='w', bbox_inches = 'tight')
+        print("ROC curve output plot to:",output_img_file)
     plt.show()
+    plt.close() 
+    
     # Zoom in view of the upper left corner.
     plt.figure(2,dpi=150)
     plt.tick_params(labelsize="x-large")
@@ -255,12 +261,15 @@ def draw_single_roc_curve(tpr, fpr, auc, output_img_file=None):
     plt.ylabel('True positive rate',fontsize="xx-large")
     plt.title('ROC curve (zoomed in at top left)',fontsize="xx-large")
     plt.legend(loc='best',fontsize="large")
-    plt.show()
 
     if output_img_file != None:
-        plt.savefig(output_img_file, facecolor='w', edgecolor='w', bbox_inches = 'tight')
-        print("Figure has been output plot to:",output_img_file)
+        path, filename, file_extension = func.extractFilePathNameExtension(output_img_file)
+        image_zoom_file = path + '/' + filename + "_zoom" +file_extension
+        plt.savefig(image_zoom_file, facecolor='w', edgecolor='w', bbox_inches = 'tight')
+        print("Zoomed ROC curve output plot to:",image_zoom_file)
+    plt.show()
     plt.close()
+    
 
 def draw_multiple_roc_curve(tpr_list, fpr_list, auc_list, info_list, title_content='ROC curve', output_image_file=None):   
     label_size = 16 #"x-large"

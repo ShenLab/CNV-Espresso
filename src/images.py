@@ -122,10 +122,10 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     ## plot the entire cnv into one image
     print("  --Step3. Illustrating an image for the entire CNV ...")
     title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type + \
-                 " "+ str((cnv_end-cnv_start)/1000) + 'kb'+ " #targets:"+str(cnv_num_targets) + \
-                 " #wins:" + str(len(RD_cnv_region_df)) + "\nCANOES:"+cnv_canoes + " XHMM:"+ \
-                 cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:"+cnv_num_carriers + \
-                 " CN-Learn:"+cnv_CNLearn_str + " GSD_Label:"+cnv_gsd_str
+                 " "+ str((cnv_end-cnv_start)/1000) + 'kb'+ " #targets:" + str(cnv_num_targets) + \
+                 " #wins:" + str(len(RD_cnv_region_df)) + "\nCANOES:" + cnv_canoes + " XHMM:"+ \
+                 cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:" + cnv_num_carriers + \
+                 " CN-Learn:" + cnv_CNLearn_str + " GSD_Label:" + cnv_gsd_str + "_" + cnv_type
 
     image_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
                  "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region_df))+"wins_"+cnv_type+".png"
@@ -134,28 +134,25 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     ax_rd = fig.subplots(nrows=1, ncols=1)
 
     ### plot reference samples
-    for sample_reader in reference_RD_df["sample"].unique():
-        ref_sample_df = reference_RD_df[reference_RD_df["sample"]==sample_reader]
+    if not reference_RD_df.empty: 
+        for sample_reader in reference_RD_df["sample"].unique():
+            ref_sample_df = reference_RD_df[reference_RD_df["sample"]==sample_reader]
 
-        # transform to log and relative
-        ref_sample_pos_df = (ref_sample_df["start"]+ref_sample_df["end"])/2
-        ref_pos_df_diff       = np.ediff1d(ref_sample_pos_df, to_begin=0)
-        ref_pos_df_cumLogDiff = ref_sample_pos_df[0] + np.cumsum(np.log1p(ref_pos_df_diff))
-        ref_RD_df_diff        = np.ediff1d(ref_sample_df["RD_norm"], to_begin=0)
-        ref_RD_df_cumLogDiff  = ref_sample_df["RD_norm"][0]+ np.cumsum(np.log1p(ref_RD_df_diff))
-        ax_rd.plot(ref_pos_df_cumLogDiff, np.log1p(ref_sample_df["RD_norm"]), color='grey', marker='.', linewidth=0.2)
+            #### Transform data (log differnece(X-axis) and log Y-axis)
+            ref_sample_pos_df     = (ref_sample_df["start"]+ref_sample_df["end"])/2
+            ref_pos_df_diff       = np.ediff1d(ref_sample_pos_df, to_begin=0)
+            ref_pos_df_cumLogDiff = ref_sample_pos_df[0] + np.cumsum(np.log1p(ref_pos_df_diff))
+            ax_rd.plot(ref_pos_df_cumLogDiff, np.log1p(ref_sample_df["RD_norm"]), color='grey', marker='.', linewidth=0.2)
 
     ### plot case sample
-    #### Transform data (log and relative)
-    case_sample_pos_df          = (RD_cnv_region_df["start"]+RD_cnv_region_df["end"])/2
-    case_pos_df_diff = np.ediff1d(case_sample_pos_df, to_begin=0)
-    case_pos_df_cumLogDiff = case_sample_pos_df[0] + np.cumsum(np.log1p(case_pos_df_diff))
-    case_RD_df_diff = np.ediff1d(RD_cnv_region_df["RD_norm"], to_begin=0)
-    case_RD_df_cumLogDiff = RD_cnv_region_df["RD_norm"][0] + np.cumsum(np.log1p(case_RD_df_diff))
-    ax_rd.plot(case_pos_df_cumLogDiff, np.log1p(RD_cnv_region_df["RD_norm"]), color=case_sample_color , marker='o', linewidth=2)
+    #### Transform data (log differnece(X-axis) and log Y-axis)
+    if not RD_cnv_region_df.empty:
+        case_sample_pos_df     = (RD_cnv_region_df["start"]+RD_cnv_region_df["end"])/2
+        case_pos_df_diff       = np.ediff1d(case_sample_pos_df, to_begin=0)
+        case_pos_df_cumLogDiff = case_sample_pos_df[0] + np.cumsum(np.log1p(case_pos_df_diff))
+        ax_rd.plot(case_pos_df_cumLogDiff, np.log1p(RD_cnv_region_df["RD_norm"]), color=case_sample_color , marker='o', linewidth=2)
 
     ax_rd.set_title(title_info)
-
     ### write the img path to the cnv_file_w_img_file
     print("  --Step4. Output image file to %s."%(output_EntireCNV_image_dir+image_file))
     img_path = output_EntireCNV_image_dir+image_file
@@ -262,7 +259,7 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
           once the cnv_w_img_file exist, insert/update each img path into the corresponding cell.
           Note: to avoid the file writing conflict, we input and output it w/ img path at the end.
     '''
-    cnv_info_w_img_file = output_path + '/cnv_info_w_img_test.csv'
+    cnv_info_w_img_file = output_path + '/cnv_info_w_img.csv'
     if not os.path.exists(cnv_info_w_img_file):
         #cnv_data_df = pd.read_table(cnv_file, header=0, sep=r'\,|\t', engine='python')
         cnv_data_df = pd.read_table(cnv_file)
@@ -309,9 +306,10 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
                generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
                                 RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
         else:
-            for index, row in enumerate(cnv_data_df[int(job_start):]):
-               index += 1
-               generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
+            for index, row in enumerate(cnv_data_df[int(job_start)-1:]):
+                index += 1    
+                index_relative = int(job_start)-1 + index
+                generate_one_image(cnv_data_df, index_relative, col_dict, cnv_info_w_img_file, 
                                 RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
 
     else:

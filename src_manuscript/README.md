@@ -32,7 +32,7 @@ python ${script_dir}cnv_espresso.py windows \
 
 ### Step 2. Calculate Read depth for each sample
 
-- Option 1. A single sample example
+- Option 1. A single sample
 
 ```bash
 sample_name='example_sample'
