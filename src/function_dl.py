@@ -602,6 +602,7 @@ def transfer_learning_model(model_name, nClasses, learning_rate, trainable=False
         #model.compile(loss='categorical_crossentropy', metrics=['accuracy', f1_m, precision_m, recall_m])
         model.compile(optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
                       loss='categorical_crossentropy', metrics=['accuracy', f1_m, precision_m, recall_m])  
+        print("Number of base model layers:", len(base_model.layers))
         return model
     
     if model_name == "ResNet50":
@@ -610,6 +611,7 @@ def transfer_learning_model(model_name, nClasses, learning_rate, trainable=False
         input_shape=(224, 224, 3),    #input_shape=(224, 224, 3),
         include_top=False)  # Do not include the ImageNet classifier at the top.
         
+        print("Number of base model layers:", len(base_model.layers))
         print("Model name: %s, nClasses: %d, Learning rate:%f, Trainable: %s"%(model_name, nClasses, learning_rate, trainable))
         base_model.trainable = trainable
         inputs = keras.Input(shape=(224, 224, 3)) #keras.Input(shape=(224, 224, 3))

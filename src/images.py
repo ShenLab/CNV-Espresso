@@ -162,7 +162,7 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     print("  --Step5. Update the %s with img path."%cnv_info_w_img_file)
     lock_flag = lockfile.LockFile(cnv_info_w_img_file)
     while lock_flag.is_locked():
-        sleep(0.01)
+        sleep(0.05)
     lock_flag.acquire()
     cnv_data_df = pd.read_csv(cnv_info_w_img_file)
     cnv_data_df.loc[index, 'img_path'] = img_path
@@ -306,12 +306,13 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
                generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
                                 RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
         else:
-            for index, row in enumerate(cnv_data_df[int(job_start)-1:]):
-                index += 1    
-                index_relative = int(job_start)-1 + index
-                generate_one_image(cnv_data_df, index_relative, col_dict, cnv_info_w_img_file, 
-                                RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
+            for index in range(int(job_start), len(cnv_data_df)+1): #cnv_data_df[int(job_start)-1:].iterrows():
+               # index += 1    
+               # index_relative = int(job_start)-1 + index
+                generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
+                               RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
 
+                print("  There are %d images left. Continue ..."%(len(cnv_data_df)-index))
     else:
         generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
                             RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)

@@ -81,9 +81,11 @@ def draw_baf_figure(ax, snv_vcf_file, cnv_sample, cnv_chr, figure_left_coordinat
 
     scatter1 = ax.scatter(baf_het_df['snv_pos'], baf_het_df['baf'], sizes=baf_het_df['snv_dp'], color=baf_color, alpha=baf_alpha, marker=".", label="Het")
     scatter2 = ax.scatter(baf_hom_df['snv_pos'], baf_hom_df['baf'], sizes=baf_hom_df['snv_dp'], color=baf_color, alpha=baf_alpha, marker=".", label="Hom")
+    
+    # rugs; red for het, blue for hom
     if info == 'Offspring':
-        sns.rugplot(data=baf_het_df,x='snv_pos', color='r', alpha=.5)
-        sns.rugplot(data=baf_hom_df,x='snv_pos', color='b', alpha=.5)
+        sns.rugplot(data=baf_het_df, x='snv_pos', color='r', alpha=.5)
+        sns.rugplot(data=baf_hom_df, x='snv_pos', color='b', alpha=.5)
 
 def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file, 
                         RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, 
