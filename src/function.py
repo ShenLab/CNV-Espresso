@@ -22,7 +22,7 @@ def global_variables():
         "CNV_START"   : ['CNV_START', 'PRED_START', 'START'],
         "CNV_END"     : ['CNV_STOP', 'STOP', 'PRED_END', 'END'],
         "CNV_TYPE"    : ['CNV_TYPE','TYPE','CNV'],
-        "NUM_TARGETS" : ['NUM_TARG','NUM_TARGETS','TARGETS','Num_Targets_Wins'],
+        "NUM_TARGETS" : ['NUM_TARG','NUM_TARGETS','TARGETS','Num_Targets_Wins','num_target'],
         "CNV_LABEL"   : ['LABEL_VAL','LABEL','GSD_info'],
         "REF"         : ['ref','REF','Ref','Reference','hg19','hg38']
     }

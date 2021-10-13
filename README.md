@@ -19,6 +19,7 @@ project_dir='/path/to/cnv_espresso/example/'
 output_rd_dir=${project_dir}'/RD_data/'
 target_file='/path/to/exome.targets.bed'
 reference_file='/path/to/reference.fasta'
+mkdir -p ${project_dir}
 cd ${project_dir}
 ```
 
@@ -51,11 +52,17 @@ This is a relatively time-consuming step, however, you can use the following com
 
 ```bash
 bam_cram_file_path_list=${project_dir}/sample_rd_file_list.txt
+num_tasks=`wc -l ${bam_cram_file_path_list} | cut -f1 -d" "`
 windows_file=${project_dir}/windows.bed
 
-# Suppose we want to calculate RD for 1000 samples
-qsub -t 1-1000 ${script_dir}cluster_mosdepth.sh \
+# Suppose we want to calculate RD for all samples using cluster
+## By SGE cluster
+qsub -t 1-${num_tasks} ${script_dir}sge_mosdepth.sh \
     ${bam_cram_file_path_list} ${reference_file} ${windows_file} ${output_rd_dir}      
+    
+## By slurm workload manager
+sbatch -a 1-${num_tasks} ${script_dir}slurm_mosdepth.sh \
+    ${bam_cram_file_path_list} ${reference_file} ${windows_file} ${output_rd_dir}
 ```
 
 Collect all the coverage files for downstream usage. 
@@ -119,12 +126,6 @@ RD_norm_dir=${project_dir}/norm/
 ref_samples_dir=${project_dir}/ref_samples/
 cnv_list=${project_dir}/xhmm.xcnv # other CNV caller's output
 output_dir=${project_dir}
-
-python ${script_dir}cnv_espresso.py images \
-    --rd_norm_dir ${RD_norm_dir} \
-    --ref_dir     ${ref_samples_dir} \
-    --cnv_list    ${cnv_list} \
-    --output      ${output_dir}
 ```
 
 - Option 1. Generate images via single thread
@@ -141,8 +142,16 @@ python ${script_dir}cnv_espresso.py images \
 Note: please modify the path of script in the `cluster_images.sh` file at first.
 
 ```bash
-qsub -t 1-1000 ${script_dir}cluster_images.sh \
-    ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
+num_tasks=`wc -l ${cnv_list} | cut -f1 -d" "`
+
+# By SGE cluster
+qsub -t 1-${num_tasks} ${script_dir}cluster_images.sh \
+    ${script_dir} ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
+
+# By slurm workload manager
+sbatch -a 1-${num_tasks} ${script_dir}cluster_images.sh \
+    ${script_dir} ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
+
 ```
 
 A few example images are located [here](https://github.com/ShenLab/CNV-Espresso/tree/main/example/images). 

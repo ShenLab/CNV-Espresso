@@ -27,7 +27,7 @@ color_del, color_dup = (0,0,1), (0,0,1) #blue for three classes labels
 
 def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file, 
                         RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img):
-    index = sge_task_id-1
+    index = int(sge_task_id)-1
     row   = cnv_data_df.iloc[index]
     col_sampleID       = col_dict['col_sampleID']
     col_cnv_interval   = col_dict['col_cnv_interval']
@@ -127,9 +127,8 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
                  cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:" + cnv_num_carriers + \
                  " CN-Learn:" + cnv_CNLearn_str + " GSD_Label:" + cnv_gsd_str + "_" + cnv_type
 
-    image_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
+    image_file = str(index+1).zfill(len(str(len(cnv_data_df))))+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
                  "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region_df))+"wins_"+cnv_type+".png"
-
     fig = plt.figure(dpi=150,figsize=(10, 7)) 
     ax_rd = fig.subplots(nrows=1, ncols=1)
 
@@ -165,7 +164,8 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
         sleep(0.05)
     lock_flag.acquire()
     cnv_data_df = pd.read_csv(cnv_info_w_img_file)
-    cnv_data_df.loc[index, 'img_path'] = img_path
+    cnv_data_df.loc[index, 'num_of_win'] = len(RD_cnv_region_df)
+    cnv_data_df.loc[index, 'img_path']   = img_path
     cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
     lock_flag.release()
 
@@ -241,6 +241,7 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
         lock_flag.release()
 
 def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id, job_start):
+    print("sge_task_id::",sge_task_id)
     try:
         sge_task_id = int(sge_task_id)
     except:
@@ -261,8 +262,11 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
     '''
     cnv_info_w_img_file = output_path + '/cnv_info_w_img.csv'
     if not os.path.exists(cnv_info_w_img_file):
-        #cnv_data_df = pd.read_table(cnv_file, header=0, sep=r'\,|\t', engine='python')
-        cnv_data_df = pd.read_table(cnv_file)
+        if os.path.splitext(cnv_file)[-1][1:] == 'csv':
+            cnv_data_df = pd.read_csv(cnv_file)
+        else:    
+            #cnv_data_df = pd.read_table(cnv_file, header=0, sep=r'\,|\t', engine='python')
+            cnv_data_df = pd.read_table(cnv_file)
         cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
     else:
         cnv_data_df = pd.read_csv(cnv_info_w_img_file)
@@ -306,9 +310,7 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
                generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
                                 RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
         else:
-            for index in range(int(job_start), len(cnv_data_df)+1): #cnv_data_df[int(job_start)-1:].iterrows():
-               # index += 1    
-               # index_relative = int(job_start)-1 + index
+            for index in range(int(job_start), len(cnv_data_df)+1):
                 generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
                                RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
 

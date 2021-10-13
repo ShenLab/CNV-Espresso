@@ -1,15 +1,4 @@
-## Step 0. Configure the path
-
-```bash
-script_dir='/home/rt2776/cnv_espresso/src/'
-project_dir='/home/rt2776/cnv_espresso/example/'
-output_rd_dir=${project_dir}'/RD_data/'
-target_file='/home/rt2776/source/capture_kits/20130108.exome.targets.bed'
-reference_file='/home/rt2776/source/references/human_g1k_v37.fasta'
-cd ${project_dir}
-```
-
-- SPARK WES2
+## SPARK WES2
 
   ```bash
   script_dir='/home/rt2776/cnv_espresso/src/'
@@ -27,9 +16,9 @@ cd ${project_dir}
 
   # Step7
   model_file='/home/rt2776/cnv_espresso/model/MobileNet_v1_fine_tuning_3classes.h5'
-
   ```
-- SPARK WES1 training model
+
+## SPARK WES1 training model
 
   ```bash
   script_dir='/home/rt2776/cnv_espresso/src/'
@@ -89,4 +78,28 @@ cd ${project_dir}
 
   ```
 
+## project7 spark wes3 wes+wgs
+  ```bash
+  ## For slurm
+  script_dir='/home/nas-0-1/nova.home/rt2776/cnv_espresso/src/'
+  project_dir='/home/nas-0-1/nova.home/rt2776/cnv_espresso/project7_spark_wes3_wes_wgs/02b_clamms_cnvEspresso/'
 
+  ## For sge
+  script_dir='/home/rt2776/cnv_espresso/src/'
+  project_dir='/home/rt2776/cnv_espresso/project7_spark_wes3_wes_wgs/02b_clamms_cnvEspresso/'
+
+  output_rd_dir=${project_dir}'/RD_data/'
+  target_file='/share/terra/SPARK_WES_2/SPARK_Freeze_Five_pVCF/resources/xgen_plus_spikein.b38.bed'
+  reference_file='/share/terra/rsrc/hg38/ref/genome.hg38rg.fa'
+  mkdir -p ${project_dir}
+  cd ${project_dir}
+  
+  # Run the pipeline in `Readme.md` for Step1 to Step7.
+
+  # Step5
+  cnv_list=${project_dir}/clamms_high_confidence.cnv.gsd_anno_af.txt
+
+  # Step7
+  model_file='/home/nas-0-1/nova.home/rt2776/cnv_espresso/model/MobileNet_v1_fine-tuning_3classes_log_transformed.h5'
+
+  ```

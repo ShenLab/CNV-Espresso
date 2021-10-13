@@ -51,7 +51,7 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
     cnv_info_df = pd.read_csv(cnv_file)
     entire_cnv_images_path_list = cnv_info_df['img_path']
     CNV_TYPE_list = func.global_variables()['CNV_TYPE']
-    CNV_TYPE      = func.fetch_colName(cnv_info_df.head(),CNV_TYPE_list)[1]
+    CNV_TYPE      = func.fetch_colName(CNV_TYPE_list,cnv_info_df.columns)[1]
     img_np        = func_dl.loadImgs(entire_cnv_images_path_list, img_width, img_height)
 
     # ## Normalization
@@ -100,9 +100,10 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
             else:
                 pdb.set_trace()
             
+        pred_output_df_type_col = func.fetch_colName(CNV_TYPE_list,pred_output_df.columns)[0]
         if pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] == "NaN":
             pred_output_df.iloc[i,pred_output_df.columns.get_loc('Status')] = "Error"
-        elif pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] == pred_output_df.iloc[i,pred_output_df.columns.get_loc(CNV_TYPE)]:
+        elif pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] == pred_output_df.iloc[i, pred_output_df_type_col]:
             pred_output_df.iloc[i,pred_output_df.columns.get_loc('Status')] = "Positive"
         else:
             pred_output_df.iloc[i,pred_output_df.columns.get_loc('Status')] = "Negative"
