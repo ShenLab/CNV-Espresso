@@ -80,11 +80,12 @@
 
 ## project7 spark wes3 wes+wgs
   ```bash
-  ## For slurm
+  ## For Nova (slurm)
   script_dir='/home/nas-0-1/nova.home/rt2776/cnv_espresso/src/'
   project_dir='/home/nas-0-1/nova.home/rt2776/cnv_espresso/project7_spark_wes3_wes_wgs/02b_clamms_cnvEspresso/'
+  project_dir='/home/nas-0-1/nova.home/rt2776/cnv_espresso/project7_spark_wes3_wes_wgs/05b_xhmm_CNVEspresso/'
 
-  ## For sge
+  ## For Biocluster (sge)
   script_dir='/home/rt2776/cnv_espresso/src/'
   project_dir='/home/rt2776/cnv_espresso/project7_spark_wes3_wes_wgs/02b_clamms_cnvEspresso/'
 
@@ -98,6 +99,8 @@
 
   # Step5
   cnv_list=${project_dir}/clamms_high_confidence.cnv.gsd_anno_af.txt
+  cnv_list=${project_dir}/clamms_inlier_cnv_af.txt
+  cnv_list=${project_dir}/xhmm_anno_af.xcnv
 
   # Step7
   model_file='/home/nas-0-1/nova.home/rt2776/cnv_espresso/model/MobileNet_v1_fine-tuning_3classes_log_transformed.h5'

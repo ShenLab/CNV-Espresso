@@ -98,14 +98,15 @@ def fileToList_tab(file_name):
 
 def fetch_colName(keyWord_list, colName_list):
     keyWord_list = [col_name.upper() for col_name in keyWord_list]
-    colName_list = [col_name.upper() for col_name in colName_list]
+    #colName_list = [col_name.upper() for col_name in colName_list]
 
     index_result = []
     keyWord_result = []
     for index, keyWord in enumerate(colName_list):
-        if keyWord in keyWord_list:
+        if keyWord.upper() in keyWord_list:
             index_result.append(index)
-            keyWord_result.append(keyWord)
+            #keyWord_result.append(keyWord)
+            keyWord_result.append(colName_list[index])
     if len(keyWord_result) == 1:
         return index_result[0], keyWord_result[0]
     else:

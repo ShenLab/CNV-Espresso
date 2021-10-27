@@ -124,8 +124,8 @@ Here, we will take other CNV caller's output (e.g. `xhmm.xcnv`) as our input and
 ```bash
 RD_norm_dir=${project_dir}/norm/
 ref_samples_dir=${project_dir}/ref_samples/
-cnv_list=${project_dir}/xhmm.xcnv # other CNV caller's output
 output_dir=${project_dir}
+cnv_list=${project_dir}/xhmm.xcnv # or other CNV caller's output
 ```
 
 - Option 1. Generate images via single thread
@@ -135,7 +135,8 @@ python ${script_dir}cnv_espresso.py images \
     --rd_norm_dir ${RD_norm_dir} \
     --ref_dir     ${ref_samples_dir} \
     --cnv_list    ${cnv_list} \
-    --output      ${output_dir} 
+    --output      ${output_dir} \
+    --overwrite_img False
 ```
 
 - Option 2. Generate images by cluster
@@ -143,14 +144,15 @@ Note: please modify the path of script in the `cluster_images.sh` file at first.
 
 ```bash
 num_tasks=`wc -l ${cnv_list} | cut -f1 -d" "`
+overwrite_img=False
 
 # By SGE cluster
 qsub -t 1-${num_tasks} ${script_dir}cluster_images.sh \
-    ${script_dir} ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
+    ${script_dir} ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} ${overwrite_img} 
 
 # By slurm workload manager
 sbatch -a 1-${num_tasks} ${script_dir}cluster_images.sh \
-    ${script_dir} ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} 
+    ${script_dir} ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} ${overwrite_img}
 
 ```
 

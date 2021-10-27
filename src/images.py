@@ -26,8 +26,14 @@ fixed_win_num = 3 # the number of targets per group
 color_del, color_dup = (0,0,1), (0,0,1) #blue for three classes labels
 
 def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file, 
-                        RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img):
+                        RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img, overwrite_img):
     index = int(sge_task_id)-1
+
+    # ignore img if overwrite is turned off
+    if (overwrite_img == 'False' and cnv_data_df.loc[index, 'img_path'] != "-"):
+        print("Image %d existed. Ignore this CNV as `overwrite_img` is turned off."%index)
+        return None
+       
     row   = cnv_data_df.iloc[index]
     col_sampleID       = col_dict['col_sampleID']
     col_cnv_interval   = col_dict['col_cnv_interval']
@@ -240,7 +246,7 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
         cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
         lock_flag.release()
 
-def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id, job_start):
+def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id, job_start, overwrite_img):
     print("sge_task_id::",sge_task_id)
     try:
         sge_task_id = int(sge_task_id)
@@ -270,6 +276,16 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
         cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
     else:
         cnv_data_df = pd.read_csv(cnv_info_w_img_file)
+
+    '''creat columns or fillna'''
+    if 'num_of_win' in cnv_data_df.columns:
+        cnv_data_df['num_of_win'] = cnv_data_df['num_of_win'].fillna("-")
+    else:
+        cnv_data_df.insert(cnv_data_df.shape[1], 'num_of_win', "-")
+    if 'img_path' in cnv_data_df.columns:
+        cnv_data_df['img_path'] = cnv_data_df['img_path'].fillna("-")
+    else:
+        cnv_data_df.insert(cnv_data_df.shape[1], 'img_path', "-")
 
     ## Parse header
     cnv_data_header  = cnv_data_df.columns.tolist()
@@ -308,14 +324,14 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
             for index, row in cnv_data_df.iterrows(): 
                index += 1
                generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
-                                RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
+                                RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img, overwrite_img)
         else:
             for index in range(int(job_start), len(cnv_data_df)+1):
                 generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
-                               RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
+                               RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img, overwrite_img)
 
                 print("  There are %d images left. Continue ..."%(len(cnv_data_df)-index))
     else:
         generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
-                            RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
+                            RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img, overwrite_img)
 

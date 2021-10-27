@@ -5,15 +5,15 @@
 #$ -l h_vmem=4G
 #S -l mem_free=4G
 #$ -pe smp 1
-set -oe pipefail
 
 #SBATCH -o job.%j.out
 #SBATCH -J mosdepth
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
-#SBTACH --mem 4G
+#SBATCH --mem 4G
 #SBATCH --time=99:99:99
 
+set -oe pipefail
 echo "Job started on `hostname` at `date`"
 
 ID=${SGE_TASK_ID}${SLURM_ARRAY_TASK_ID}
