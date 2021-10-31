@@ -104,5 +104,6 @@
 
   # Step7
   model_file='/home/nas-0-1/nova.home/rt2776/cnv_espresso/model/MobileNet_v1_fine-tuning_3classes_log_transformed.h5'
+  model_file='/home/rt2776/cnv_espresso/model/MobileNet_v1_fine-tuning_3classes_log_transformed.h5'
 
   ```

@@ -188,7 +188,7 @@ Alternatively, we also prepared a jupyter notebook (**[train.ipynb](https://gith
 
 ```bash
 cnv_w_img_file=${project_dir}/cnv_info_w_img.csv
-model_file='/path/to/model/MobileNet_v1_fine_tuning_3classes.h5'
+model_file='/path/to/model/MobileNet_v1_fine-tuning_3classes_log_transformed.h5'
 output_file=${project_dir}/cnv_espresso_prediction.csv
 
 python ${script_dir}cnv_espresso.py predict \

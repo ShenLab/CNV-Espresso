@@ -7,6 +7,7 @@ import os
 import math
 import pysam
 import sys
+import random
 import lockfile
 from time import sleep
 
@@ -31,7 +32,7 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
 
     # ignore img if overwrite is turned off
     if (overwrite_img == 'False' and cnv_data_df.loc[index, 'img_path'] != "-"):
-        print("Image %d existed. Ignore this CNV as `overwrite_img` is turned off."%index)
+        print("Image %d existed. Ignore this CNV, since `overwrite_img` is turned off."%index)
         return None
        
     row   = cnv_data_df.iloc[index]
@@ -167,7 +168,7 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     print("  --Step5. Update the %s with img path."%cnv_info_w_img_file)
     lock_flag = lockfile.LockFile(cnv_info_w_img_file)
     while lock_flag.is_locked():
-        sleep(0.05)
+        sleep(random.randint(1,100)/1000)
     lock_flag.acquire()
     cnv_data_df = pd.read_csv(cnv_info_w_img_file)
     cnv_data_df.loc[index, 'num_of_win'] = len(RD_cnv_region_df)
@@ -239,7 +240,7 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
         ### write the img path to the cnv_file_w_img_file
         lock_flag = lockfile.LockFile(cnv_info_w_img_file)
         while lock_flag.is_locked():
-            sleep(0.01)
+            sleep(random.randint(1,100)/1000)
         lock_flag.acquire()
         cnv_data_df = pd.read_csv(cnv_info_w_img_file)
         cnv_data_df.loc[index, 'split_cnv_img_path'] = '\n'.join([each_path for each_path in split_cnv_path_list]) 

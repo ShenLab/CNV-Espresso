@@ -6,7 +6,7 @@
 #S -l mem_free=18G
 #$ -pe smp 1
 
-#SBATCH -o job.%j.out
+#SBATCH -o ./logs/job.%j.out
 #SBATCH -J image 
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
