@@ -1,0 +1,62 @@
+---
+title : "Generate figures before and after GC normlization"
+Author: Renjie Tan
+output: html_notebook, figures in PDF format
+---
+
+```{r}
+library(ggplot2)
+library(IDPmisc)
+library(RColorBrewer)
+library(magrittr)
+library(ggpubr)
+```
+
+Import data
+```{r}
+gc_norm_file <- '/Users/rtan/terra_rt2776/CNV_Espresso/project0_train_model/data/norm/SP0000027.cov.bed.norm.gz'
+gc_norm_df   <- read.table(gc_norm_file,col.names = c("CHR", "START", "END", "GC", "RD_raw", "RD_norm"))
+```
+
+Create a color palette to use in smoothed scatterplot
+```{r}
+buylrd = c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF",
+           "#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026") 
+myColRamp = colorRampPalette(c(buylrd))
+```
+
+Smoothed scatterplot
+```{r}
+pdf(file = "./GC_normlization_before.pdf")
+par(mar = c(4, 5, 1, 1) )
+smoothScatter(x=gc_norm_df$GC,gc_norm_df$RD_raw,
+              colramp=myColRamp,
+              #main="Before GC content normalization",
+              xlab="GC content",
+              ylab="Raw read depth",
+              cex.main=2,
+              cex.axis=2,
+              cex.lab=2,
+              )
+
+dev.off()
+
+```
+```{r}
+pdf(file = "./GC_normlization_after.pdf")
+par(mar = c(4, 5, 1, 1) )
+smoothScatter(x=gc_norm_df$GC,gc_norm_df$RD_norm,
+              colramp=myColRamp,
+              #main="After GC content normalization",
+              xlab="GC content",
+              ylab="Normalized read depth",
+              cex.main=2,
+              cex.axis=2,
+              cex.lab=2
+              )
+
+dev.off()
+```
+
+### Reference:
+- https://rstudio-pubs-static.s3.amazonaws.com/151690_ac65a180e03641e2adc3cb2ecf6306c3.html

@@ -7,6 +7,7 @@ import os
 import math
 import pysam
 import sys
+import random
 import lockfile
 from time import sleep
 
@@ -20,14 +21,20 @@ CNV_INTERVAL    = global_var_dict['CNV_INTERVAL']
 CNV_TYPE        = global_var_dict['CNV_TYPE']
 NUM_TARGETS     = global_var_dict['NUM_TARGETS']
 GSD_LABEL       = global_var_dict['CNV_LABEL']
-PRE_LABEL       = global_var_dict['REF']
+REF_LABEL       = global_var_dict['REF']
 
 fixed_win_num = 3 # the number of targets per group
 color_del, color_dup = (0,0,1), (0,0,1) #blue for three classes labels
 
 def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file, 
-                        RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img):
-    index = sge_task_id-1
+                        RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img, overwrite_img):
+    index = int(sge_task_id)-1
+
+    # ignore img if overwrite is turned off
+    if (overwrite_img == 'False' and cnv_data_df.loc[index, 'img_path'] != "-"):
+        print("Image %d existed. Ignore this CNV, since `overwrite_img` is turned off."%index)
+        return None
+       
     row   = cnv_data_df.iloc[index]
     col_sampleID       = col_dict['col_sampleID']
     col_cnv_interval   = col_dict['col_cnv_interval']
@@ -45,7 +52,6 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
 
     output_EntireCNV_image_dir  = output_path + '/images/' 
     output_SplitCNV_image_dir   = output_path + '/images_split_cnvs/'
-
 
     sampleID  = row[col_sampleID]
     try:
@@ -105,16 +111,17 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
                                                                         cnv_chr, figure_left, figure_right))
     ## Import RD data info
     print("  --Step1. Fetching RD data for case sample ...")
-    RD_cnv_region_df = func.fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, figure_left, figure_right, fixed_win_num)
+    RD_cnv_region_df = func.fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, 
+                                                figure_left, figure_right, 
+                                                fixed_win_num, colname='RD_norm')
 
     ## Fetch Read depth data for reference samples in terms of CNV boundary       
     print("  --Step2. Fetching RD data for reference samples ...")
-    ref_samples_file = func.fetch_relative_file_path(ref_samples_dir, sampleID,'txt')
-
+    ref_samples_file = func.fetch_relative_file_path(ref_samples_dir, sampleID, '*')
+    
     if not os.path.exists(ref_samples_file):
         print("    -[Error]: error in reference samples related file for %s in %s"%(sampleID, ref_samples_dir))
         exit(0)
-  
     reference_RD_df = func.fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, 
                                                     cnv_chr, figure_left, figure_right, 
                                                     fixed_win_num, corr_threshold)
@@ -122,28 +129,36 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     ## plot the entire cnv into one image
     print("  --Step3. Illustrating an image for the entire CNV ...")
     title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type + \
-                 " "+ str((cnv_end-cnv_start)/1000) + 'kb'+ " #targets:"+str(cnv_num_targets) + \
-                 " #wins:" + str(len(RD_cnv_region_df)) + "\nCANOES:"+cnv_canoes + " XHMM:"+ \
-                 cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:"+cnv_num_carriers + \
-                 " CN-Learn:"+cnv_CNLearn_str + " GSD_Label:"+cnv_gsd_str
+                 " "+ str((cnv_end-cnv_start)/1000) + 'kb'+ " #targets:" + str(cnv_num_targets) + \
+                 " #wins:" + str(len(RD_cnv_region_df)) + "\nCANOES:" + cnv_canoes + " XHMM:"+ \
+                 cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:" + cnv_num_carriers + \
+                 " CN-Learn:" + cnv_CNLearn_str + " GSD_Label:" + cnv_gsd_str + "_" + cnv_type
 
-    image_file = str(index+1)+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
+    image_file = str(index+1).zfill(len(str(len(cnv_data_df))))+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
                  "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region_df))+"wins_"+cnv_type+".png"
-
     fig = plt.figure(dpi=150,figsize=(10, 7)) 
     ax_rd = fig.subplots(nrows=1, ncols=1)
 
     ### plot reference samples
-    for sample_reader in reference_RD_df["sample"].unique():
-                ref_sample_df = reference_RD_df[reference_RD_df["sample"]==sample_reader]
-                ax_rd.plot((ref_sample_df["start"]+ref_sample_df["end"])/2, ref_sample_df["RD_norm"],
-                            color='grey', marker='.', linewidth=0.2)
+    if not reference_RD_df.empty: 
+        for sample_reader in reference_RD_df["sample"].unique():
+            ref_sample_df = reference_RD_df[reference_RD_df["sample"]==sample_reader]
+
+            #### Transform data (log differnece(X-axis) and log Y-axis)
+            ref_sample_pos_df     = (ref_sample_df["start"]+ref_sample_df["end"])/2
+            ref_pos_df_diff       = np.ediff1d(ref_sample_pos_df, to_begin=0)
+            ref_pos_df_cumLogDiff = ref_sample_pos_df[0] + np.cumsum(np.log1p(ref_pos_df_diff))
+            ax_rd.plot(ref_pos_df_cumLogDiff, np.log1p(ref_sample_df["RD_norm"]), color='grey', marker='.', linewidth=0.2)
 
     ### plot case sample
-    ax_rd.plot((RD_cnv_region_df["start"]+RD_cnv_region_df["end"])/2, RD_cnv_region_df["RD_norm"], \
-                color=case_sample_color , marker='o', linewidth=2)
-    ax_rd.set_title(title_info)
+    #### Transform data (log differnece(X-axis) and log Y-axis)
+    if not RD_cnv_region_df.empty:
+        case_sample_pos_df     = (RD_cnv_region_df["start"]+RD_cnv_region_df["end"])/2
+        case_pos_df_diff       = np.ediff1d(case_sample_pos_df, to_begin=0)
+        case_pos_df_cumLogDiff = case_sample_pos_df[0] + np.cumsum(np.log1p(case_pos_df_diff))
+        ax_rd.plot(case_pos_df_cumLogDiff, np.log1p(RD_cnv_region_df["RD_norm"]), color=case_sample_color , marker='o', linewidth=2)
 
+    ax_rd.set_title(title_info)
     ### write the img path to the cnv_file_w_img_file
     print("  --Step4. Output image file to %s."%(output_EntireCNV_image_dir+image_file))
     img_path = output_EntireCNV_image_dir+image_file
@@ -153,10 +168,11 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     print("  --Step5. Update the %s with img path."%cnv_info_w_img_file)
     lock_flag = lockfile.LockFile(cnv_info_w_img_file)
     while lock_flag.is_locked():
-        sleep(0.01)
+        sleep(random.randint(1,100)/1000)
     lock_flag.acquire()
     cnv_data_df = pd.read_csv(cnv_info_w_img_file)
-    cnv_data_df.loc[index, 'img_path'] = img_path
+    cnv_data_df.loc[index, 'num_of_win'] = len(RD_cnv_region_df)
+    cnv_data_df.loc[index, 'img_path']   = img_path
     cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
     lock_flag.release()
 
@@ -207,12 +223,14 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
             # plot reference samples
             for sample_reader in reference_RD_df_split["sample"].unique():
                 ref_sample_df =  reference_RD_df_split[reference_RD_df_split["sample"]==sample_reader]
-                ax_rd.plot((ref_sample_df["start"]+ref_sample_df["end"])/2, ref_sample_df["RD_norm"],
+                ax_rd.plot(np.log1p((ref_sample_df["start"]+ref_sample_df["end"])/2), np.log1p(ref_sample_df["RD_norm"]), \
                             color = 'grey', marker='.', linewidth=0.2)
             
             # plot case sample
-            ax_rd.plot((RD_cnv_region_split["start"]+RD_cnv_region_split["end"])/2, RD_cnv_region_split["RD_norm"],
-                    color=case_sample_color, marker='o', linewidth=2)
+            ax_rd.plot(np.log1p((RD_cnv_region_split["start"]+RD_cnv_region_split["end"])/2), \
+                        np.log1p(RD_cnv_region_split["RD_norm"]), \
+                        color=case_sample_color, marker='o', linewidth=2)
+
             ax_rd.set_title(title_split_info)
             plt.savefig(output_SplitCNV_image_dir+image_split_file)
             plt.close()
@@ -222,27 +240,28 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
         ### write the img path to the cnv_file_w_img_file
         lock_flag = lockfile.LockFile(cnv_info_w_img_file)
         while lock_flag.is_locked():
-            sleep(0.01)
+            sleep(random.randint(1,100)/1000)
         lock_flag.acquire()
         cnv_data_df = pd.read_csv(cnv_info_w_img_file)
         cnv_data_df.loc[index, 'split_cnv_img_path'] = '\n'.join([each_path for each_path in split_cnv_path_list]) 
         cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
         lock_flag.release()
 
-def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id):
+def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, sge_task_id, job_start, overwrite_img):
+    print("sge_task_id::",sge_task_id)
     try:
         sge_task_id = int(sge_task_id)
     except:
         sge_task_id = 'all'
 
-    ## Output images and folders
+    ## Prepare for output images and folders
     output_EntireCNV_image_dir  = output_path + '/images/' 
     os.makedirs(output_EntireCNV_image_dir, exist_ok=True)
     if split_img == True:
         output_SplitCNV_image_dir   = output_path + '/images_split_cnvs/'
         os.makedirs(output_SplitCNV_image_dir, exist_ok=True)
     
-    ## Output cnv info file with image path
+    ## Prepare for cnv info file with image path
     '''
     Idea: for the very beginning, copy the cnv_file to cnv_w_img_file, then
           once the cnv_w_img_file exist, insert/update each img path into the corresponding cell.
@@ -250,13 +269,24 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
     '''
     cnv_info_w_img_file = output_path + '/cnv_info_w_img.csv'
     if not os.path.exists(cnv_info_w_img_file):
-        #cnv_data_df = pd.read_table(cnv_file, header=0, sep=r'\,|\t', engine='python')
-        cnv_data_df = pd.read_table(cnv_file)
+        if os.path.splitext(cnv_file)[-1][1:] == 'csv':
+            cnv_data_df = pd.read_csv(cnv_file)
+        else:    
+            #cnv_data_df = pd.read_table(cnv_file, header=0, sep=r'\,|\t', engine='python')
+            cnv_data_df = pd.read_table(cnv_file)
         cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
+    else:
+        cnv_data_df = pd.read_csv(cnv_info_w_img_file)
 
-    ## CNV info
-    #cnv_data_df = pd.read_table(cnv_file, header=0, sep=r'\,|\t', engine='python')
-    cnv_data_df = pd.read_table(cnv_file)
+    '''creat columns or fillna'''
+    if 'num_of_win' in cnv_data_df.columns:
+        cnv_data_df['num_of_win'] = cnv_data_df['num_of_win'].fillna("-")
+    else:
+        cnv_data_df.insert(cnv_data_df.shape[1], 'num_of_win', "-")
+    if 'img_path' in cnv_data_df.columns:
+        cnv_data_df['img_path'] = cnv_data_df['img_path'].fillna("-")
+    else:
+        cnv_data_df.insert(cnv_data_df.shape[1], 'img_path', "-")
 
     ## Parse header
     cnv_data_header  = cnv_data_df.columns.tolist()
@@ -267,7 +297,7 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
     col_cnv_end      = func.fetch_colName(CNV_END, cnv_data_header)[0]
     col_cnv_type     = func.fetch_colName(CNV_TYPE, cnv_data_header)[0]
     col_GSD_label    = func.fetch_colName(GSD_LABEL, cnv_data_header)[0]
-    col_PRE_label    = func.fetch_colName(PRE_LABEL, cnv_data_header)[0]
+    col_PRE_label    = func.fetch_colName(['PRE','PRED_LABEL'], cnv_data_header)[0]
     col_cnv_canoes   = func.fetch_colName(['CANOES','CANOES_RT'], cnv_data_header)[0]
     col_cnv_xhmm     = func.fetch_colName(['XHMM','XHMM_RT'], cnv_data_header)[0]
     col_cnv_clamms   = func.fetch_colName(['CLAMMS','CLAMMS_RT'], cnv_data_header)[0]
@@ -291,15 +321,18 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
     }
 
     if sge_task_id == False:
-        for index, row in cnv_data_df.iterrows(): 
-           #  row = next(cnv_data_df.iterrows())[1]
-           #  index = 1
-           # if index + 1 < start_point:
-           #     continue
-            generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
-                            RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
+        if job_start == False:
+            for index, row in cnv_data_df.iterrows(): 
+               index += 1
+               generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
+                                RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img, overwrite_img)
+        else:
+            for index in range(int(job_start), len(cnv_data_df)+1):
+                generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
+                               RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img, overwrite_img)
 
+                print("  There are %d images left. Continue ..."%(len(cnv_data_df)-index))
     else:
         generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
-                            RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img)
+                            RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, split_img, overwrite_img)
 
