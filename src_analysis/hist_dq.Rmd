@@ -1,0 +1,246 @@
+---
+title: "Illustrate the distribution of DQ from Canvas"
+2021.10.22
+Renjie
+output: html_notebook
+---
+```{r}
+library(ggplot2)
+library(scales) # for color palette
+library("gridExtra") # for merging figures
+library(ggpubr)
+```
+
+## 1. Import dataset. 
+- The excel table contains XHMM raw calls on SPARK WES3 with overlapped WGS samples. We annotate WGS CNV calls identified by Canvas and Manta.
+```{r}
+cnv_df <- readxl::read_xlsx(path='./data/spark_wes3_wgs_xhmm.xlsx')
+rare_cnv_df <- cnv_df[which(cnv_df$`Num_Carriers(inGivenCohort)`<=6),]
+rare_cnv_df
+```
+
+## 2. Functions
+```{r}
+# PPV vs Number of targets
+ppv_targets <- function(data_df, num_target){
+  selected_df <- data_df[which(data_df$NUM_TARG >= num_target), ]
+  TP_canvas   <- nrow(selected_df[which(selected_df$TP_canvas!=''), ])
+  TP_union    <- nrow(selected_df[which(selected_df$TP_union !=''), ])
+  ppv_before_cnvEspresso <- TP_union/nrow(selected_df) # we take TP_union for now, but we can also take step back.
+  
+  selected_df_espresso  <- selected_df[which(selected_df$Status=='Positive'), ]
+  TP_canvas_espresso    <- nrow(selected_df_espresso[which(selected_df_espresso$TP_canvas!=''), ])
+  TP_union_espresso     <- nrow(selected_df_espresso[which(selected_df_espresso$TP_union !=''), ])
+  ppv_after_cnvEspresso <- TP_union_espresso/nrow(selected_df_espresso) # we take TP_union for now, but we can also take step back.
+  
+  return(c(ppv_before_cnvEspresso, ppv_after_cnvEspresso))
+}
+
+plot_ppv_numTargets <- function(rare_cnv_df){
+  result_df <- data.frame(num_target=numeric(), ppv=numeric(), Tools=character(), stringsAsFactors = FALSE)
+
+  for(num_target in 1:20){
+    ppv_targets(rare_cnv_df, num_target)
+    #print(ppv_targets(rare_cnv_df, num_target))
+    result_df[nrow(result_df) + 1,] <- c(num_target, ppv_targets(rare_cnv_df, num_target)[1], 'XHMM')
+    result_df[nrow(result_df) + 1,] <- c(num_target, ppv_targets(rare_cnv_df, num_target)[2], 'XHMM & CNV-Espresso')
+  }
+  
+  result_df$num_target <- as.numeric(result_df$num_target)
+  result_df$ppv <- as.numeric(result_df$ppv)
+  
+  plot_ppv_numTargets <- ggplot(result_df, aes(x=num_target, y=ppv, colour=Tools)) +
+                          geom_line() +
+                          geom_point(alpha=1) +
+                          theme(text = element_text(size=18)) + ylab("Precision") + xlab("Number of targets") +
+                          theme(legend.position='none') +
+                          scale_color_manual(values = c("XHMM"=hue_pal()(3)[3], "XHMM & CNV-Espresso"=hue_pal()(3)[1]))
+  return(plot_ppv_numTargets)
+}
+
+# PPV vs CNV frequency
+ppv_cnvfrequency <- function(data_df, cnv_frequency){
+  num_sample <- length(unique(data_df$SAMPLE))
+  selected_df <- data_df[which(data_df$`Num_Carriers(inGivenCohort)`/num_sample < cnv_frequency), ]
+  TP_canvas <- nrow(selected_df[which(selected_df$TP_canvas!=''),])
+  TP_union  <- nrow(selected_df[which(selected_df$TP_union !=''),])
+  ppv_before_cnvEspresso <- TP_union/nrow(selected_df)
+  
+  selected_df_espresso  <- selected_df[which(selected_df$Status=='Positive'),]
+  TP_canvas_espresso    <- nrow(selected_df_espresso[which(selected_df_espresso$TP_canvas!=''),])
+  TP_union_espresso     <- nrow(selected_df_espresso[which(selected_df_espresso$TP_union !=''),])
+  ppv_after_cnvEspresso <- TP_union_espresso/nrow(selected_df_espresso)
+  return(c(ppv_before_cnvEspresso, ppv_after_cnvEspresso))
+}
+
+plot_ppv_cnvfreq <- function(cnv_df){
+  result_df <- data.frame(cnv_frequency=numeric(), ppv=numeric(), Tools=character(), stringsAsFactors = FALSE)
+
+  for(num in 1:50){
+    cnv_frequency <- num/1000
+    
+    ppv <- ppv_cnvfrequency(cnv_df, cnv_frequency)
+    print(paste0("CNV freq: ",ppv*100,"%"))
+  
+    result_df[nrow(result_df) + 1,] <- c(cnv_frequency, ppv[1], 'XHMM')
+    result_df[nrow(result_df) + 1,] <- c(cnv_frequency, ppv[2], 'XHMM & CNV-Espresso')
+  }
+  
+  result_df$cnv_frequency <- as.numeric(result_df$cnv_frequency)
+  result_df$ppv <- as.numeric(result_df$ppv)
+  
+  plot_ppv_cnvfreq <- ggplot(result_df, aes(x=cnv_frequency, y=ppv, colour=Tools)) +
+                      geom_point(alpha=1) + 
+                      stat_smooth(method=lm) + # Smooth the dots
+                      #scale_color_hue(direction = -1) + # reverse the color 
+                      theme(text = element_text(size=18)) + ylab("Precision") + xlab("CNV frequency") +
+                      theme(legend.position="none") +
+                      scale_color_manual(values = c("XHMM"=hue_pal()(3)[3], "XHMM & CNV-Espresso"=hue_pal()(3)[1]))
+  
+  return(plot_ppv_cnvfreq)
+}
+
+
+```
+
+##  3. Analysis and Plots
+### 3.1 Plots for the performance of initial rare CNVs before and after in silico validation by CNV-Espresso
+```{r}
+hist(rare_cnv_df$NUM_TARG,xlim=c(1,50),breaks=1000)
+```
+```{r fig.height=3, fig.width=9}
+plot_ppv_numTargets_unionAsTP <- plot_ppv_numTargets(rare_cnv_df)
+plot_ppv_vs_cnvFreq_all <- plot_ppv_cnvfreq(cnv_df)
+
+combo <- grid.arrange(plot_ppv_numTargets_unionAsTP, plot_ppv_vs_cnvFreq_all, fig_redu_canvas,  nrow=1, ncol =3)
+ggsave("./plots/combo.pdf", combo, width=15, height=5, unit="in")
+combo
+```
+
+### 3.2 Plots for rare CNVs and **SQ > 60**
+```{r}
+rare_cnv_sq60 <- rare_cnv_df[which(rare_cnv_df$Q_SOME >=60), ]
+plot_ppv_numTargets_unionAsTP_sq60 <- plot_ppv_numTargets(rare_cnv_sq60)
+
+all_cnv_sq60 <- cnv_df[which(cnv_df$Q_SOME >=60), ]
+plot_ppv_freq_sq60 <- plot_ppv_cnvfreq(all_cnv_sq60)
+
+```
+
+### 3.3 Plots for rare CNVs and excluding SD regions
+```{r}
+rare_cnv_exlSD <- rare_cnv_df[which(rare_cnv_df$SD_region=='-' & rare_cnv_df$Q_SOME >=60),] #rare_cnv_df$`special_regions(clamms)`=='-' & 
+plot_ppv_numTargets_unionAsTP_exlSD <- plot_ppv_numTargets(rare_cnv_exlSD)
+plot_ppv_numTargets_unionAsTP_exlSD
+
+cnv_sd_sq60 <- cnv_df[which(cnv_df$SD_region=='-' & cnv_df$Q_SOME >=60), ]
+plot_ppv_freq_sd_sq60 <- plot_ppv_cnvfreq(cnv_sd_sq60)
+plot_ppv_freq_sd_sq60
+
+grid.arrange(plot_ppv_numTargets_unionAsTP_exlSD, plot_ppv_freq_sd_sq60, nrow=1, ncol = 2)
+
+```
+
+
+## 3.4 The performance for reducting TP and FP (reflect recall indirectly)
+### 3.4.1. Canvas as GSD
+```{r}
+# A bar plot to show the reduction performance between and after CNV-espresso
+plot_reduction_performance <- function(TP, TP_espresso, TN, TN_espresso){
+  summary_data <- data.frame(cnv_status=rep(c("True  Postive", "False Postive"), each=2),
+                     Tools=rep(c("XHMM", "XHMM+CNVEspresso"),2),
+                     num_cnv=c(TP, TP_espresso, TN, TN_espresso))
+
+  PLOT <- ggplot(summary_data, aes(x=Tools, y=num_cnv, fill=cnv_status)) + 
+    geom_bar(stat="identity", width=0.7, position=position_dodge(width=0.7)) +
+    geom_text(aes(label=num_cnv), vjust=0, size=6, position = position_dodge(width = 0.7)) +
+    theme(text = element_text(size=18)) + ylab("Number of predictions") +
+    theme(legend.position = c(0.85, 0.87), 
+          legend.background = element_rect(fill = "white", color = "black"), 
+          legend.title = element_blank()) +
+    scale_fill_manual(values=c(hue_pal()(3)[3], hue_pal()(3)[1]))
+  return(PLOT)
+}
+```
+
+```{r}
+rare_cnv_df <- cnv_df[which(cnv_df$`Num_Carriers(inGivenCohort)`<=6),]
+TP_canvas <- nrow(rare_cnv_df[which(rare_cnv_df$TP_canvas!=""),])
+TN_canvas <- nrow(rare_cnv_df[which(rare_cnv_df$TN_canvas!=""),])
+
+rare_cnv_espresso_df <- rare_cnv_df[which(rare_cnv_df$Status=="Positive"),]
+TP_canvas_espresso <- nrow(rare_cnv_espresso_df[which(rare_cnv_espresso_df$TP_canvas!=""),])
+TN_canvas_espresso <- nrow(rare_cnv_espresso_df[which(rare_cnv_espresso_df$TN_canvas!=""),])
+
+fig_redu_canvas <- plot_reduction_performance(TP_canvas, TP_canvas_espresso, TN_canvas, TN_canvas_espresso)
+fig_redu_canvas
+ggsave("./plots/cnvEspresso_reduction_performance_canvas.pdf", fig_redu_canvas, width=7, height=5, unit="in")
+fig_redu_canvas
+```
+
+### 3.4.2 Using the intersection of canvas and Manta as GSD
+```{r}
+
+TP_both <- nrow(rare_cnv_df[which(rare_cnv_df$TP_intersection!=""),])
+TN_both <- nrow(rare_cnv_df[which(rare_cnv_df$TN_both!=""),])
+
+rare_cnv_espresso_df <- rare_cnv_df[which(rare_cnv_df$Status=="Positive"),]
+TP_both_espresso <- nrow(rare_cnv_espresso_df[which(rare_cnv_espresso_df$TP_intersection!=""),])
+TN_both_espresso <- nrow(rare_cnv_espresso_df[which(rare_cnv_espresso_df$TN_both!=""),])
+
+fig_redu_intersection <- plot_reduction_performance(TP_both, TP_both_espresso, TN_both, TN_both_espresso)
+fig_redu_intersection
+ggsave("./cnvEspresso_reduction_performance_canvas_manta.pdf", fig_redu_intersection, width=7, height=5, unit="in")
+fig_redu_intersection
+```
+
+### 3.4.3 Using the union of canvas and Manta as GSD
+```{r}
+TP_union <- nrow(rare_cnv_df[which(rare_cnv_df$TP_union!=""),])
+TN_union  <- nrow(rare_cnv_df[which(rare_cnv_df$TN_both!=""),])
+
+rare_cnv_espresso_df <- rare_cnv_df[which(rare_cnv_df$Status=="Positive"),]
+TP_union_espresso <- nrow(rare_cnv_espresso_df[which(rare_cnv_espresso_df$TP_union!=""),])
+TN_union_espresso <- nrow(rare_cnv_espresso_df[which(rare_cnv_espresso_df$TN_both!=""),])
+
+fig_redu_union <- plot_reduction_performance(TP_union, TP_union_espresso, TN_union, TN_union_espresso)
+fig_redu_union
+ggsave("./plots/cnvEspresso_reduction_performance_union.pdf", fig_redu_union, width=7, height=5, unit="in")
+fig_redu_union
+```
+
+## 3.5 What's the CNV size distribution overlapped w/ calls from Canvas and Manta
+```{r}
+cnv_df <- readxl::read_xlsx(path='./data/spark_wes3_wgs_xhmm.xlsx')
+
+unique(cnv_df$TP_union)
+cnv_df_ov_manta  <- cnv_df[which(cnv_df$TP_union == "TP_manta"  | cnv_df$TP_union == "TP_canvas_manta"),]
+cnv_df_ov_canvas <- cnv_df[which(cnv_df$TP_union == "TP_canvas" | cnv_df$TP_union == "TP_canvas_manta"),]
+
+dim(cnv_df_ov_canvas)
+
+plot_df1 <- cbind(cnv_df_ov_canvas, Tools="Canvas")
+plot_df2 <- cbind(cnv_df_ov_manta, Tools="Manta")
+plot_df  <- rbind(plot_df1, plot_df2)
+
+ggplot(plot_df, aes(NUM_TARG, fill=Tools, colour=Tools)) +
+  geom_density(alpha = 0.3) +
+  xlim(0, 50) +
+  theme(text = element_text(size=18)) + 
+  scale_fill_manual(values=c(hue_pal()(3)[3], hue_pal()(3)[1])) +
+  scale_color_manual(values=c(hue_pal()(3)[3], hue_pal()(3)[1]))
+```
+
+```{r}
+cnv_df
+# for rare CNVs
+plot_rare_df <- plot_df[which(plot_df$`Num_Carriers(inGivenCohort)`<=6),]
+
+ggplot(plot_rare_df, aes(NUM_TARG, fill=Tools, colour=Tools)) +
+  geom_density(alpha = 0.3) +
+  xlim(0, 50) +
+  theme(text = element_text(size=18)) + 
+  scale_fill_manual(values=c(hue_pal()(3)[3], hue_pal()(3)[1])) +
+  scale_color_manual(values=c(hue_pal()(3)[3], hue_pal()(3)[1]))
+```
+

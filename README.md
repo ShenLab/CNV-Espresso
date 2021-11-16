@@ -150,7 +150,7 @@ overwrite_img=False
 qsub -t 1-${num_tasks} ${script_dir}cluster_images.sh \
     ${script_dir} ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} ${overwrite_img} 
 
-# By slurm workload manager
+# By Slurm workload manager
 sbatch -a 1-${num_tasks} ${script_dir}cluster_images.sh \
     ${script_dir} ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} ${overwrite_img}
 

@@ -1,0 +1,85 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+library(stringr)
+#chars <- "test"
+#value <- "es"
+#str_detect(chars, value)
+
+library("dplyr")
+```
+
+```{r}
+cnv_espresso_file <- "./data/pcgc_NimbleGenV2_data_prediction0922.csv"
+cnv_df <- read.csv(file=cnv_espresso_file)
+cnv_df
+```
+
+```{r}
+wes_cnv_df <- cnv_df[which(str_detect(cnv_df$AnalysisObserved., "E")),]
+typeof(wes_cnv_df$Prob_DEL)
+
+wes_cnv_df_ordered <- arrange(wes_cnv_df, -Prob_DEL, Prob_DIP)  
+
+wes_cnv_df_ordered[,c("ID", "Prob_DEL", "Prob_DIP", "Prob_DUP","Status")]
+```
+```{r}
+result_df <- data.frame(CNV_ID=character(), GSD_type=character(), Probability=numeric(), Prob_type=character(), stringsAsFactors = FALSE)
+
+for(i in 1:nrow(wes_cnv_df_ordered)){
+  CNV_ID <- wes_cnv_df_ordered[i,"ID"]
+  GSD_type <- wes_cnv_df_ordered[i, "CNV_TYPE"]
+  
+  Prob_del <- wes_cnv_df_ordered[i,"Prob_DEL"]
+  Prob_dip <- wes_cnv_df_ordered[i, "Prob_DIP"]
+  Prob_dup <- wes_cnv_df_ordered[i, "Prob_DUP"]
+  
+  Prob_del_type <- "Prob_DEL"
+  Prob_dip_type <- "Prob_DIP"
+  Prob_dup_type <- "Prob_DUP"
+  
+  result_df[nrow(result_df) + 1,] <- c(CNV_ID, GSD_type, Prob_del, Prob_del_type)
+  result_df[nrow(result_df) + 1,] <- c(CNV_ID, GSD_type, Prob_dip, Prob_dip_type)
+  result_df[nrow(result_df) + 1,] <- c(CNV_ID, GSD_type, Prob_dup, Prob_dup_type)
+}
+result_df$Probability <- as.numeric(result_df$Probability)
+order <- as.character(unique(result_df$CNV_ID))
+
+result_df$CNV_ID <- factor(result_df$CNV_ID, levels = order)
+result_df
+```
+
+
+```{r}
+result_df
+prob_plot <- ggplot(data=result_df, aes(x=CNV_ID, y=Probability, label = GSD_type, fill=Prob_type )) +
+                    geom_bar(stat='identity',position='fill') + 
+                    theme(text = element_text(size=18)) + xlab("") +
+                    theme(axis.text.x = element_text(size=9, angle = 45, vjust = 1, hjust=1)) +
+                    labs(fill='')
+prob_plot
+ggsave("./cnvEspresso_predicted_prob.pdf", prob_plot, width=9, height=5, unit="in")
+prob_plot
+```
+```{r}
+## Generate a GSD heatmap
+ggplot(data=result_df, aes(x=CNV_ID, y= GSD_type, fill=Prob_type ))+
+  geom_bar(stat='identity',position='fill') 
+
+result_df$GSD_type <- factor(result_df$GSD_type, levels = c('DEL','DIP','DUP'))
+
+gsd_plot <- ggplot(result_df, aes(x = CNV_ID, y=1, fill = GSD_type)) +
+              geom_tile(color = "white", lwd = 1.5, linetype = 1) +
+              scale_fill_manual(values=c("#F8766D", "#619CFF")) + 
+              xlab("") + ylab("") +labs(fill='') + 
+              theme(axis.text=element_blank())
+gsd_plot
+ggsave("./cnvEspresso_gsd_plot.pdf", gsd_plot, width=9, height=1, unit="in")
+gsd_plot
+```
+)
+
