@@ -1,5 +1,5 @@
 ---
-title: "Illustrate the distribution of DQ from Canvas"
+title: "Illustrate the distribution of PPV vs CNV-freq vs TP/FP before and after CNV-espresso"
 [Initial] 10/22/2021
 [Update]  02/03/2022
 
@@ -38,10 +38,10 @@ ppv_cnvfrequency <- function(data_df, cnv_frequency){
   return(c(ppv_before_cnvEspresso, ppv_after_cnvEspresso))
 }
 
-plot_ppv_cnvfreq <- function(cnv_df){
+plot_ppv_cnvfreq <- function(cnv_df, legend_position){
   result_df <- data.frame(cnv_frequency=numeric(), ppv=numeric(), Tools=character(), stringsAsFactors = FALSE)
 
-  for(num in 1:1000){
+  for(num in 1:200){
     # here controls the cnv freq.
     cnv_frequency <- num/1000
     
@@ -49,7 +49,7 @@ plot_ppv_cnvfreq <- function(cnv_df){
     print(paste0("CNV freq: ",ppv*100,"%"))
   
     result_df[nrow(result_df) + 1,] <- c(cnv_frequency, ppv[1], 'XHMM')
-    result_df[nrow(result_df) + 1,] <- c(cnv_frequency, ppv[2], 'XHMM & CNV-Espresso')
+    result_df[nrow(result_df) + 1,] <- c(cnv_frequency, ppv[2], 'XHMM & CNV-espresso')
   }
   
   result_df$cnv_frequency <- as.numeric(result_df$cnv_frequency)
@@ -57,15 +57,19 @@ plot_ppv_cnvfreq <- function(cnv_df){
   
   plot_ppv_cnvfreq <- ggplot(result_df, aes(x=cnv_frequency, y=ppv, colour=Tools)) +
                       geom_point(alpha=1) + 
-                      stat_smooth(method=lm) + # Smooth the dots
+                      #stat_smooth(method=lm) + # Smooth the dots
                       #scale_color_hue(direction = -1) + # reverse the color 
                       theme(text = element_text(size=18)) + 
                       ylab("Precision") + xlab("CNV frequency") + ylim(0.3,0.8) +
-                      theme(legend.position="none") +
-                      scale_color_manual(values = c("XHMM"=hue_pal()(3)[3], "XHMM & CNV-Espresso"=hue_pal()(3)[1]))
+                      theme(legend.position=legend_position,
+                            legend.background = element_rect(fill = "white", color = "black"), 
+                            legend.title = element_blank(),
+                            legend.text = element_text(size=10)) +
+                      scale_color_manual(values = c("XHMM"=hue_pal()(3)[3], "XHMM & CNV-espresso"=hue_pal()(3)[1]))
   
   return(plot_ppv_cnvfreq)
-  
+}
+
 # [Figure 5 B,E,F] PPV vs Number of targets
 ppv_targets <- function(data_df, num_target){
   selected_df <- data_df[which(data_df$NUM_TARG >= num_target), ]
@@ -81,14 +85,14 @@ ppv_targets <- function(data_df, num_target){
   return(c(ppv_before_cnvEspresso, ppv_after_cnvEspresso))
 }
 
-plot_ppv_numTargets <- function(rare_cnv_df){
+plot_ppv_numTargets <- function(rare_cnv_df, legend_position){
   result_df <- data.frame(num_target=numeric(), ppv=numeric(), Tools=character(), stringsAsFactors = FALSE)
 
   for(num_target in 1:20){
     ppv_targets(rare_cnv_df, num_target)
     #print(ppv_targets(rare_cnv_df, num_target))
     result_df[nrow(result_df) + 1,] <- c(num_target, ppv_targets(rare_cnv_df, num_target)[1], 'XHMM')
-    result_df[nrow(result_df) + 1,] <- c(num_target, ppv_targets(rare_cnv_df, num_target)[2], 'XHMM & CNV-Espresso')
+    result_df[nrow(result_df) + 1,] <- c(num_target, ppv_targets(rare_cnv_df, num_target)[2], 'XHMM & CNV-espresso')
   }
   
   result_df$num_target <- as.numeric(result_df$num_target)
@@ -96,20 +100,41 @@ plot_ppv_numTargets <- function(rare_cnv_df){
   
   plot_ppv_numTargets <- ggplot(result_df, aes(x=num_target, y=ppv, colour=Tools)) +
                           geom_line() +
-                          geom_point(alpha=1) +
+                          geom_point(alpha=10) +
                           theme(text = element_text(size=18)) +
-                          ylab("Precision") + xlab("Number of targets") + ylim(0.3,0.8) +
-                          theme(legend.position='none') +
-                          scale_color_manual(values = c("XHMM"=hue_pal()(3)[3], "XHMM & CNV-Espresso"=hue_pal()(3)[1]))
+                          ylab("Precision") + xlab("Minimum number of targets") + ylim(0.3,0.8) +
+                          theme(legend.position=legend_position,
+                                legend.background = element_rect(fill = "white", color = "black"), 
+                                legend.title = element_blank(),
+                                legend.text = element_text(size=10)) +
+                          scale_color_manual(values = c("XHMM"=hue_pal()(3)[3], "XHMM & CNV-espresso"=hue_pal()(3)[1]))
   return(plot_ppv_numTargets)
 }
 
 
+# [Figure 5 C,F,I] A bar plot to show the reduction performance between and after CNV-espresso
+plot_reduction_performance <- function(TP, TP_espresso, TN, TN_espresso, legend_position){
+  summary_data <- data.frame(cnv_status=rep(c("True  Postive", "False Postive"), each=2),
+                     Tools=rep(c("XHMM", "XHMM & \nCNV-espresso"),2),
+                     num_cnv=c(TP, TP_espresso, TN, TN_espresso))
+
+  PLOT <- ggplot(summary_data, aes(x=Tools, y=num_cnv, fill=cnv_status)) + 
+    geom_bar(stat="identity", width=0.7, position=position_dodge(width=0.7)) +
+    geom_text(aes(label=num_cnv), vjust=0, size=6, position = position_dodge(width = 0.7)) +
+    theme(text = element_text(size=18)) + ylab("Number of predictions") +  ylim(0, 2000) + 
+    theme(axis.title.x=element_blank(), axis.text.x = element_text(color="black", size=18)) +
+    theme(legend.position = legend_position, 
+          legend.background = element_rect(fill = "white", color = "black"), 
+          legend.title = element_blank(),
+          legend.text = element_text(size=10)) +
+    scale_fill_manual(values=c(hue_pal()(3)[3], hue_pal()(3)[1]))
+  return(PLOT)
 }
 ```
 
 ##  3. Analysis and Plots
 ### 3.1 Plots for the performance of initial rare CNVs before and after in silico validation by CNV-Espresso
+- Not use this part in the manuscript, just for a test
 ```{r}
 hist(rare_cnv_df$NUM_TARG,xlim=c(1,50),breaks=1000)
 hist(cnv_df$CNV_freq,breaks=80)
@@ -119,35 +144,37 @@ plot_ppv_numTargets_unionAsTP <- plot_ppv_numTargets(rare_cnv_df)
 plot_ppv_vs_cnvFreq_all <- plot_ppv_cnvfreq(cnv_df)
 
 combo <- grid.arrange(plot_ppv_numTargets_unionAsTP, plot_ppv_vs_cnvFreq_all, fig_redu_canvas,  nrow=1, ncol =3)
-ggsave("./plots/combo.pdf", combo, width=15, height=5, unit="in")
+#ggsave("./plots/combo.pdf", combo, width=15, height=5, unit="in")
 combo
 ```
 
 ### 3.2 Plots for rare CNVs and **SQ > 60**
+- Use this part in the manuscript
 ```{r}
 ## SQ >= 0 or 30
 all_cnv_sq0 <- cnv_df[which(cnv_df$Q_SOME >= 0), ]
-plot_ppv_freq_sq0 <- plot_ppv_cnvfreq(all_cnv_sq0)
+plot_ppv_freq_sq0 <- plot_ppv_cnvfreq(all_cnv_sq0, legend_position = c(0.68,0.85))
 
 rare_cnv_sq0 <- rare_cnv_df[which(rare_cnv_df$Q_SOME >= 0), ]
-plot_ppv_numTargets_unionAsTP_sq0 <- plot_ppv_numTargets(rare_cnv_sq0)
+plot_ppv_numTargets_unionAsTP_sq0 <- plot_ppv_numTargets(rare_cnv_sq0, legend_position = c(0.7,0.15))
 
 ## SQ >=60
-all_cnv_sq60 <- cnv_df[which(cnv_df$Q_SOME >=60), ]
-plot_ppv_freq_sq60 <- plot_ppv_cnvfreq(all_cnv_sq60)
+all_cnv_sq60 <- cnv_df[which(cnv_df$Q_SOME >=60), legend_position = 'none' ]
+plot_ppv_freq_sq60 <- plot_ppv_cnvfreq(all_cnv_sq60, legend_position = 'none')
 
-rare_cnv_sq60 <- rare_cnv_df[which(rare_cnv_df$Q_SOME >=60), ]
-plot_ppv_numTargets_unionAsTP_sq60 <- plot_ppv_numTargets(rare_cnv_sq60)
+rare_cnv_sq60 <- rare_cnv_df[which(rare_cnv_df$Q_SOME >=60), legend_position = 'none']
+plot_ppv_numTargets_unionAsTP_sq60 <- plot_ppv_numTargets(rare_cnv_sq60, legend_position = 'none')
 
 ## SQ >=90
-all_cnv_sq90 <- cnv_df[which(cnv_df$Q_SOME >=90), ]
-plot_ppv_freq_sq90 <- plot_ppv_cnvfreq(all_cnv_sq90)
+all_cnv_sq90 <- cnv_df[which(cnv_df$Q_SOME >=90), legend_position = 'none']
+plot_ppv_freq_sq90 <- plot_ppv_cnvfreq(all_cnv_sq90, legend_position = 'none')
 
-rare_cnv_sq90 <- rare_cnv_df[which(rare_cnv_df$Q_SOME >=90), ]
-plot_ppv_numTargets_unionAsTP_sq90 <- plot_ppv_numTargets(rare_cnv_sq90)
+rare_cnv_sq90 <- rare_cnv_df[which(rare_cnv_df$Q_SOME >=90),  legend_position = 'none']
+plot_ppv_numTargets_unionAsTP_sq90 <- plot_ppv_numTargets(rare_cnv_sq90,  legend_position = 'none')
 ```
 
 ### 3.3 Plots for rare CNVs and excluding SD regions
+- Not use this part in the manuscript, just for a check
 ```{r}
 rare_cnv_exlSD <- rare_cnv_df[which(rare_cnv_df$SD_region=='-' & rare_cnv_df$Q_SOME >=60),] #rare_cnv_df$`special_regions(clamms)`=='-' & 
 plot_ppv_numTargets_unionAsTP_exlSD <- plot_ppv_numTargets(rare_cnv_exlSD)
@@ -161,28 +188,9 @@ grid.arrange(plot_ppv_numTargets_unionAsTP_exlSD, plot_ppv_freq_sd_sq60, nrow=1,
 
 ```
 
-
 ## 3.4 The performance for reducting TP and FP (reflect recall indirectly)
 ### 3.4.1 Canvas as GSD
-```{r}
-# A bar plot to show the reduction performance between and after CNV-espresso
-plot_reduction_performance <- function(TP, TP_espresso, TN, TN_espresso){
-  summary_data <- data.frame(cnv_status=rep(c("True  Postive", "False Postive"), each=2),
-                     Tools=rep(c("XHMM", "XHMM+CNVEspresso"),2),
-                     num_cnv=c(TP, TP_espresso, TN, TN_espresso))
-
-  PLOT <- ggplot(summary_data, aes(x=Tools, y=num_cnv, fill=cnv_status)) + 
-    geom_bar(stat="identity", width=0.7, position=position_dodge(width=0.7)) +
-    geom_text(aes(label=num_cnv), vjust=0, size=6, position = position_dodge(width = 0.7)) +
-    theme(text = element_text(size=18)) + ylab("Number of predictions") +
-    theme(legend.position = c(0.85, 0.87), 
-          legend.background = element_rect(fill = "white", color = "black"), 
-          legend.title = element_blank()) +
-    scale_fill_manual(values=c(hue_pal()(3)[3], hue_pal()(3)[1]))
-  return(PLOT)
-}
-```
-
+- Not use this part in the manuscript
 ```{r}
 rare_cnv_df <- cnv_df[which(cnv_df$`Num_Carriers(inGivenCohort)`<=6),]
 TP_canvas <- nrow(rare_cnv_df[which(rare_cnv_df$TP_canvas!=""),])
@@ -199,6 +207,7 @@ fig_redu_canvas
 ```
 
 ### 3.4.2 Using the intersection of canvas and Manta as GSD
+- Not use this part in the manuscript
 ```{r}
 
 TP_both <- nrow(rare_cnv_df[which(rare_cnv_df$TP_intersection!=""),])
@@ -216,17 +225,60 @@ fig_redu_intersection
 
 ### 3.4.3 [Use this one] Using the union of canvas and Manta as GSD
 ```{r}
-TP_union <- nrow(rare_cnv_df[which(rare_cnv_df$TP_union!=""),])
-TN_union  <- nrow(rare_cnv_df[which(rare_cnv_df$TN_both!=""),])
+# SQ>=0
+TP_union_sq0 <- nrow(rare_cnv_df[which(rare_cnv_df$TP_union!=""),])
+TN_union_sq0 <- nrow(rare_cnv_df[which(rare_cnv_df$TN_both!=""),])
 
-rare_cnv_espresso_df <- rare_cnv_df[which(rare_cnv_df$Status=="Positive"),]
-TP_union_espresso <- nrow(rare_cnv_espresso_df[which(rare_cnv_espresso_df$TP_union!=""),])
-TN_union_espresso <- nrow(rare_cnv_espresso_df[which(rare_cnv_espresso_df$TN_both!=""),])
+rare_cnv_espresso_df  <- rare_cnv_df[which(rare_cnv_df$Status=="Positive"),]
+TP_union_espresso_sq0 <- nrow(rare_cnv_espresso_df[which(rare_cnv_espresso_df$TP_union!=""),])
+TN_union_espresso_sq0 <- nrow(rare_cnv_espresso_df[which(rare_cnv_espresso_df$TN_both!=""),])
 
-fig_redu_union <- plot_reduction_performance(TP_union, TP_union_espresso, TN_union, TN_union_espresso)
-fig_redu_union
-ggsave("./plots/cnvEspresso_reduction_performance_union.pdf", fig_redu_union, width=7, height=5, unit="in")
-fig_redu_union
+fig_redu_union_sq0 <- plot_reduction_performance(TP_union_sq0, TP_union_espresso_sq0, 
+                                                 TN_union_sq0, TN_union_espresso_sq0, legend_position=c(0.75,0.87))
+fig_redu_union_sq0
+
+# SQ>=60
+TP_union_sq60 <- nrow(rare_cnv_df[which(rare_cnv_df$TP_union!="" & rare_cnv_df$Q_SOME >=60 ),])
+TN_union_sq60 <- nrow(rare_cnv_df[which(rare_cnv_df$TN_both!="" & rare_cnv_df$Q_SOME >=60),])
+
+rare_cnv_espresso_df_sq60 <- rare_cnv_df[which(rare_cnv_df$Status=="Positive" & rare_cnv_df$Q_SOME >=60 ),]
+TP_union_espresso_sq60 <- nrow(rare_cnv_espresso_df_sq60[which(rare_cnv_espresso_df_sq60$TP_union!=""),])
+TN_union_espresso_sq60 <- nrow(rare_cnv_espresso_df_sq60[which(rare_cnv_espresso_df_sq60$TN_both!=""),])
+
+fig_redu_union_sq60 <- plot_reduction_performance(TP_union_sq60, TP_union_espresso_sq60, 
+                                                  TN_union_sq60, TN_union_espresso_sq60, legend_position='none')
+fig_redu_union_sq60
+
+# SQ>=90
+TP_union_sq90 <- nrow(rare_cnv_df[which(rare_cnv_df$TP_union!="" & rare_cnv_df$Q_SOME >=90 ),])
+TN_union_sq90 <- nrow(rare_cnv_df[which(rare_cnv_df$TN_both!="" & rare_cnv_df$Q_SOME >=90),])
+
+rare_cnv_espresso_df_sq90 <- rare_cnv_df[which(rare_cnv_df$Status=="Positive" & rare_cnv_df$Q_SOME >=90 ),]
+TP_union_espresso_sq90 <- nrow(rare_cnv_espresso_df_sq90[which(rare_cnv_espresso_df_sq90$TP_union!=""),])
+TN_union_espresso_sq90 <- nrow(rare_cnv_espresso_df_sq90[which(rare_cnv_espresso_df_sq90$TN_both!=""),])
+
+fig_redu_union_sq90 <- plot_reduction_performance(TP_union_sq90, TP_union_espresso_sq90, 
+                                                  TN_union_sq90, TN_union_espresso_sq90, legend_position='none')
+fig_redu_union_sq90
+#ggsave("./plots/cnvEspresso_reduction_performance_union.pdf", fig_redu_union, width=7, height=5, unit="in")
+```
+## group sub-figures
+```{r}
+plot_ppv_freq_sq0
+plot_ppv_freq_sq60
+plot_ppv_freq_sq90
+plot_ppv_numTargets_unionAsTP_sq0
+plot_ppv_numTargets_unionAsTP_sq60
+plot_ppv_numTargets_unionAsTP_sq90
+fig_redu_union_sq0
+fig_redu_union_sq60
+fig_redu_union_sq90
+combo <- grid.arrange(plot_ppv_freq_sq0,  plot_ppv_numTargets_unionAsTP_sq0,  fig_redu_union_sq0, 
+                      plot_ppv_freq_sq60, plot_ppv_numTargets_unionAsTP_sq60, fig_redu_union_sq60, 
+                      plot_ppv_freq_sq90, plot_ppv_numTargets_unionAsTP_sq90, fig_redu_union_sq90, 
+                      nrow=3, ncol =3)
+combo
+ggsave("./plots/Figure5.pdf", combo, width=14, height=12, unit="in")
 ```
 
 ## 3.5 What's the CNV size distribution overlapped w/ calls from Canvas and Manta
