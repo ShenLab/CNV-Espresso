@@ -1,5 +1,5 @@
 # _CNV-espresso_
-#### A tool designed for confirming **<u>C</u>**opy **<u>N</u>**umber **<u>V</u>**ariants from **<u>E</u>**xome **<u>S</u>**equencing **<u>Pre</u>**diction**<u>s</u>** in **<u>S</u>**ilic**<u>o</u>**
+A tool designed for confirming ***C***opy ***N***umber ***V***ariants from ***E***xome ***S***equencing ***Pre***diction***s*** in ***S***ilic***o***
 
 
 ## Dependencies
@@ -10,7 +10,7 @@ Mosdepth: https://github.com/brentp/mosdepth
 
 Tabix: http://www.htslib.org/doc/tabix.html (optional)
 
-## Usage
+## Tutorial
 
 ### Step 0. Configure the path
 ```bash
@@ -117,7 +117,7 @@ python ${script_dir}cnv_espresso.py reference \
     --corr_threshold -1 
 ```
 
-### Step 5. Generate images 
+### Step 5. Encode images 
 
 Here, we will take other CNV caller's output (e.g. `xhmm.xcnv`) as our input and we will use the following commands to encode those CNV predictions into images.
 
@@ -197,6 +197,12 @@ python ${script_dir}cnv_espresso.py predict \
     --output   ${output_file} \
     --use_gpu  False
 ```
+
+## Citation
+
+Accurate in silico confirmation of rare copy number variant calls from exome sequencing data using transfer learning
+
+
 
 ## Contact
 
