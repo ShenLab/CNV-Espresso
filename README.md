@@ -1,5 +1,5 @@
 # _CNV-espresso_
-#### A tool designed for validating **C**opy **N**umber **V**ariants from **E**xome **S**equencing **PRE**diction**S** in **S**ilic**O**
+#### A tool designed for confirming **C**opy **N**umber **V**ariants from **E**xome **S**equencing **PRE**diction**S** in **S**ilic**O**
 
 
 ## Dependencies
