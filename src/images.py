@@ -128,11 +128,15 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
 
     ## plot the entire cnv into one image
     print("  --Step3. Illustrating an image for the entire CNV ...")
-    title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type + \
-                 " "+ str((cnv_end-cnv_start)/1000) + 'kb'+ " #targets:" + str(cnv_num_targets) + \
-                 " #wins:" + str(len(RD_cnv_region_df)) + "\nCANOES:" + cnv_canoes + " XHMM:"+ \
-                 cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:" + cnv_num_carriers + \
-                 " CN-Learn:" + cnv_CNLearn_str + " GSD_Label:" + cnv_gsd_str + "_" + cnv_type
+#    title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type + \
+#                 " "+ str((cnv_end-cnv_start)/1000) + 'kb'+ " #targets:" + str(cnv_num_targets) + \
+#                 " #wins:" + str(len(RD_cnv_region_df)) + "\nCANOES:" + cnv_canoes + " XHMM:"+ \
+#                 cnv_xhmm + " CLAMMS:"+cnv_clamms + " #Carriers:" + cnv_num_carriers + \
+#                 " CN-Learn:" + cnv_CNLearn_str + " GSD_Label:" + cnv_gsd_str + "_" + cnv_type
+
+    title_info = sampleID + "  " + str(cnv_chr) + ":" + str(cnv_start)+ "-" + str(cnv_end) + \
+                 "  " + str((cnv_end-cnv_start)/1000) + 'kb' + "  #targets:" + str(cnv_num_targets) + \
+                 "  #wins:" + str(len(RD_cnv_region_df)) + "  "+ cnv_type
 
     image_file = str(index+1).zfill(len(str(len(cnv_data_df))))+"_"+sampleID+"_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
                  "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region_df))+"wins_"+cnv_type+".png"
@@ -264,7 +268,7 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
     ## Prepare for cnv info file with image path
     '''
     Idea: for the very beginning, copy the cnv_file to cnv_w_img_file, then
-          once the cnv_w_img_file exist, insert/update each img path into the corresponding cell.
+          once the cnv_w_img_file exists, insert/update each img path into the corresponding cell.
           Note: to avoid the file writing conflict, we input and output it w/ img path at the end.
     '''
     cnv_info_w_img_file = output_path + '/cnv_info_w_img.csv'

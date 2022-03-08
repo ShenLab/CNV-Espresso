@@ -22,7 +22,7 @@ def global_variables():
         "CNV_START"   : ['CNV_START', 'PRED_START', 'START'],
         "CNV_END"     : ['CNV_STOP', 'STOP', 'PRED_END', 'END'],
         "CNV_TYPE"    : ['CNV_TYPE','TYPE','CNV'],
-        "NUM_TARGETS" : ['NUM_TARG','NUM_TARGETS','TARGETS','Num_Targets_Wins','num_target'],
+        "NUM_TARGETS" : ['NUM_TARG','NUM_TARGETS','Num_Targets_Wins','num_target'],
         "CNV_LABEL"   : ['LABEL_VAL','LABEL','GSD_info'],
         "REF"         : ['ref','REF','Ref','Reference','hg19','hg38']
     }
@@ -109,7 +109,10 @@ def fetch_colName(keyWord_list, colName_list):
             keyWord_result.append(colName_list[index])
     if len(keyWord_result) == 1:
         return index_result[0], keyWord_result[0]
-    else:
+    elif len(keyWord_result) > 1:
+        print("[Error] Multiple keywords for one. Please take a look")
+        pdb.set_trace()
+    else:    
         return [None, None]
 
 def parse_pedigreeFile(file_name):
