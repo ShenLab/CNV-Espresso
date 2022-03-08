@@ -1,4 +1,4 @@
-# _CNV-Espresso_
+# _CNV-espresso_
 #### A tool designed for validating **C**opy **N**umber **V**ariants from **E**xome **S**equencing **PRE**diction**S** in **S**ilic**O**
 
 
@@ -150,7 +150,7 @@ overwrite_img=False
 qsub -t 1-${num_tasks} ${script_dir}cluster_images.sh \
     ${script_dir} ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} ${overwrite_img} 
 
-# By slurm workload manager
+# By Slurm workload manager
 sbatch -a 1-${num_tasks} ${script_dir}cluster_images.sh \
     ${script_dir} ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} ${overwrite_img}
 
@@ -160,7 +160,7 @@ A few example images are located [here](https://github.com/ShenLab/CNV-Espresso/
 
 ### Step 6. Training 
 
-In general, you can directly use our pretrained CNN model ([MobileNet_v1_fine_tuning_3classes.h5](https://github.com/ShenLab/CNV-Espresso/blob/main/model/MobileNet_v1_fine_tuning_3classes.h5)) for your *in silico* validation (Skip step 6). However, if you have a bunch of validated or confirmed CNVs, you can also train the CNN model from scratch. If so, please follow the tutorial below:
+In general, you can directly use our pretrained CNN model ([MobileNet_v1_fine-tuning_3classes_log_transformed.h5](https://github.com/ShenLab/CNV-Espresso/blob/main/model/MobileNet_v1_fine-tuning_3classes_log_transformed.h5)) for your *in silico* validation (Skip step 6). However, if you have a bunch of validated or confirmed CNVs, you can also train the CNN model from scratch. If so, please follow the tutorial below:
 
 1. Please use `images` function in `cnv_espresso.py` as **Step5** to generate images for your prepared true deletion, true duplication, false deletion and false duplication. Note that false deletion and false duplication will be treated as diploid together in the downstream steps.
 

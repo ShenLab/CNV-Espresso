@@ -235,14 +235,15 @@ def draw_loss_accuracy_curves(history, project_name, output_img_file=None):
 
    
 def draw_single_roc_curve(tpr, fpr, auc, output_img_file=None):
+    label_size = 16 #"x-large"
     plt.figure(1,dpi=150)
-    plt.tick_params(labelsize="x-large")
+    plt.tick_params(labelsize=label_size)
     plt.plot([0, 1], [0, 1], 'k--')
     plt.plot(fpr,tpr,label='AUC area = {:.3f})'.format(auc))
-    plt.xlabel('False positive rate',fontsize="xx-large")
-    plt.ylabel('True positive rate',fontsize="xx-large")
-    plt.title('ROC curve',fontsize="xx-large")
-    plt.legend(loc='best',fontsize="large")
+    plt.xlabel('False positive rate',fontsize=label_size)
+    plt.ylabel('True positive rate',fontsize=label_size)
+    plt.title('ROC curve',fontsize=label_size)
+    plt.legend(loc='best',fontsize=12)
     
     if output_img_file != None:
         plt.savefig(output_img_file, facecolor='w', edgecolor='w', bbox_inches = 'tight')
@@ -252,15 +253,15 @@ def draw_single_roc_curve(tpr, fpr, auc, output_img_file=None):
     
     # Zoom in view of the upper left corner.
     plt.figure(2,dpi=150)
-    plt.tick_params(labelsize="x-large")
+    plt.tick_params(labelsize=label_size)
     plt.xlim(0, 0.3)
     plt.ylim(0.7, 1)
     plt.plot([0, 1], [0, 1], 'k--')
     plt.plot(fpr,tpr,label='AUC area = {:.3f})'.format(auc))
-    plt.xlabel('False positive rate',fontsize="xx-large")
-    plt.ylabel('True positive rate',fontsize="xx-large")
-    plt.title('ROC curve (zoomed in at top left)',fontsize="xx-large")
-    plt.legend(loc='best',fontsize="large")
+    plt.xlabel('False positive rate',fontsize=label_size)
+    plt.ylabel('True positive rate',fontsize=label_size)
+    plt.title('ROC curve (zoomed in at top left)',fontsize=label_size)
+    plt.legend(loc='best',fontsize=12)
 
     if output_img_file != None:
         path, filename, file_extension = func.extractFilePathNameExtension(output_img_file)
