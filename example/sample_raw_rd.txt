@@ -1,1 +1,0 @@
-/home/rt2776/cnv_espresso/example//RD_data/NA12878.cov.bed.gz

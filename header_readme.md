@@ -1,3 +1,24 @@
+## Github example/project4_1000gp
+
+```bash
+script_dir='/share/terra/Users/rt2776/CNV_Espresso/src/'
+project_dir='/share/terra/Users/rt2776/CNV_Espresso/project4_1000gp/'
+output_rd_dir='/share/terra/Users/rt2776/CNV_Espresso/project4_1000gp/norm/'
+target_file=''
+reference_file=''
+cd ${project_dir}
+
+# Step5
+RD_norm_dir=${project_dir}/norm/
+ref_samples_dir=${project_dir}/ref_samples/
+cnv_list=${project_dir}/xhmm_NA12878.xcnv
+output_dir=${project_dir}
+
+# Step7
+model_file='/share/terra/Users/rt2776/CNV_Espresso/model/MobileNet_v1_fine-tuning_3classes_log_transformed.h5'
+
+```
+
 ## SPARK WES2
 
   ```bash

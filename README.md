@@ -1,5 +1,5 @@
 # _CNV-espresso_
-#### A tool designed for confirming **C**opy **N**umber **V**ariants from **E**xome **S**equencing **PRE**diction**S** in **S**ilic**O**
+#### A tool designed for confirming **<u>C</u>**opy **<u>N</u>**umber **<u>V</u>**ariants from **<u>E</u>**xome **<u>S</u>**equencing **<u>Pre</u>**diction**<u>s</u>** in **<u>S</u>**ilic**<u>o</u>**
 
 
 ## Dependencies
@@ -23,7 +23,7 @@ mkdir -p ${project_dir}
 cd ${project_dir}
 ```
 
-### Step 1. Split large capture region into small windows and annotate with GC content 
+### Step 1. Split extreme large capture regions into suitable size windows and annotate with GC content 
 ```bash
 python ${script_dir}cnv_espresso.py windows \
     --target ${target_file} \
@@ -33,7 +33,7 @@ python ${script_dir}cnv_espresso.py windows \
 
 ### Step 2. Calculate Read depth for each sample
 
-- Option 1. A single sample example
+- Option 1. Single sample 
 
 ```bash
 sample_name='example_sample'
@@ -46,7 +46,7 @@ zcat ${output_rd_dir}/${sample_name}.regions.bed.gz | cut -f1-3,5 | bgzip -c > $
 tabix -f -p bed ${output_rd_dir}/${sample_name}.cov.bed.gz
 ```
 
-This is a relatively time-consuming step, however, you can use the following command to accelerate the speed if you have a cluster.
+This is a relatively time-consuming step, however, you can use the following commands to accelerate the speed if you have a cluster. Otherwise, run the above commands in a loop.
 
 - Option 2. Multiple samples (by cluster)
 
@@ -98,7 +98,7 @@ windows_file=${project_dir}/windows.bed
 RD_list=${project_dir}/sample_raw_rd.txt
 output_dir=${project_dir}/norm/
 
-# Assuming that we want to process 1000 samples
+# E.g., we want to process 1000 samples
 qsub -t 1-1000 ${script_dir}cluster_gc_norm.sh \
     ${windows_file} ${RD_list} ${output_dir}
 ```
@@ -119,7 +119,7 @@ python ${script_dir}cnv_espresso.py reference \
 
 ### Step 5. Generate images 
 
-Here, we will take other CNV caller's output (e.g. `xhmm.xcnv`) as our input and we will use the following command to encode those CNV predictions into images.
+Here, we will take other CNV caller's output (e.g. `xhmm.xcnv`) as our input and we will use the following commands to encode those CNV predictions into images.
 
 ```bash
 RD_norm_dir=${project_dir}/norm/
@@ -158,13 +158,13 @@ sbatch -a 1-${num_tasks} ${script_dir}cluster_images.sh \
 
 A few example images are located [here](https://github.com/ShenLab/CNV-Espresso/tree/main/example/images). 
 
-### Step 6. Training 
+### Step 6. Training (Optional)
 
-In general, you can directly use our pretrained CNN model ([MobileNet_v1_fine-tuning_3classes_log_transformed.h5](https://github.com/ShenLab/CNV-Espresso/blob/main/model/MobileNet_v1_fine-tuning_3classes_log_transformed.h5)) for your *in silico* validation (Skip step 6). However, if you have a bunch of validated or confirmed CNVs, you can also train the CNN model from scratch. If so, please follow the tutorial below:
+In general, you can directly use our pretrained CNN model ([MobileNet_v1_fine-tuning_3classes_log_transformed.h5](https://github.com/ShenLab/CNV-Espresso/blob/main/model/MobileNet_v1_fine-tuning_3classes_log_transformed.h5)) for your *in silico* validation (Skip step 6). However, if you have a bunch of validated or high-confidence CNVs, you can also train the CNN model from scratch. If so, please follow the tutorial below:
 
 1. Please use `images` function in `cnv_espresso.py` as **Step5** to generate images for your prepared true deletion, true duplication, false deletion and false duplication. Note that false deletion and false duplication will be treated as diploid together in the downstream steps.
 
-2. We recommend using a GPU server to handle this step. You can train your specific model by the following command:
+2. We recommend using a GPU server to handle this step. You can train your custom model by the following commands:
 
 ```bash
 true_del_img=${project_dir}/train/true_del.list
@@ -184,7 +184,7 @@ python ${script_dir}cnv_espresso.py train \
 
 Alternatively, we also prepared a jupyter notebook (**[train.ipynb](https://github.com/ShenLab/CNV-Espresso/blob/main/src/train.ipynb)**) for tracking and debugging the entire training process.
 
-### Step 7. Validating CNV predictions *in silico* 
+### Step 7. Confirming CNV predictions *in silico* 
 
 ```bash
 cnv_w_img_file=${project_dir}/cnv_info_w_img.csv
