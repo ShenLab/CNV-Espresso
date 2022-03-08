@@ -141,7 +141,6 @@ def f1_m(y_true, y_pred):
     precision = precision_m(y_true, y_pred)
     recall = recall_m(y_true, y_pred)
     return 2*((precision*recall)/(precision+recall+keras.backend.epsilon()))
-#ref: https://datascience.stackexchange.com/questions/45165/how-to-get-accuracy-f1-precision-and-recall-for-a-keras-model
 
 def pred_roc_data(model, img, label_one_hot):
     pred_keras = model.predict(img).ravel() # ravel(): Flatten the array
@@ -232,7 +231,6 @@ def draw_loss_accuracy_curves(history, project_name, output_img_file=None):
         print("Figure has been output plot to:",output_img_file)
     plt.show()
     plt.close()
-
    
 def draw_single_roc_curve(tpr, fpr, auc, output_img_file=None):
     label_size = 16 #"x-large"
@@ -270,7 +268,6 @@ def draw_single_roc_curve(tpr, fpr, auc, output_img_file=None):
         print("Zoomed ROC curve output plot to:",image_zoom_file)
     plt.show()
     plt.close()
-    
 
 def draw_multiple_roc_curve(tpr_list, fpr_list, auc_list, info_list, title_content='ROC curve', output_image_file=None):   
     label_size = 16 #"x-large"
@@ -409,7 +406,6 @@ def make_segments(x, y):
 
     return segments
 
-
 def colorline(x, y, z=None, axes=None,
               cmap=plt.get_cmap('coolwarm'),
               norm=plt.Normalize(0.0, 1.0), linewidth=3, alpha=1.0,
@@ -441,9 +437,7 @@ def colorline(x, y, z=None, axes=None,
 
     axes.add_collection(lc)
     axes.autoscale()
-
     return lc
-
 
 def plot_roc(tpr, fpr, thresholds, subplots_kwargs=None,
              label_every=None, label_kwargs=None,

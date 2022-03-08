@@ -198,11 +198,6 @@ python ${script_dir}cnv_espresso.py predict \
     --use_gpu  False
 ```
 
-## Utilities
-We will release the following auxiliary functions in the near future.
-- Plot read depth signal before and after GC normalization
-- Merge results from multiple CNV callers
-
 ## Contact
 
 Renjie Tan (rt2776 at cumc.columbia.edu) or Yufeng Shen (ys2411 at cumc.columbia.edu)
