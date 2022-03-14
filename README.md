@@ -204,7 +204,6 @@ Accurate in silico confirmation of rare copy number variant calls from exome seq
 Renjie Tan, Yufeng Shen
 bioRxiv 2022.03.09.483665; doi: https://doi.org/10.1101/2022.03.09.483665
 
-
 ## Contact
 
 Renjie Tan (rt2776 at cumc.columbia.edu) or Yufeng Shen (ys2411 at cumc.columbia.edu)
