@@ -16,11 +16,11 @@ def main():
 # input/output/parse files
 def global_variables():
     global_variable_dict = {
-        "SAMPLE"      : ['SAMPLE','SAMPLE_ID','ID'],
+        "SAMPLE"      : ['SAMPLE','SAMPLE_ID','ID','sample_name'],
         "CNV_INTERVAL": ['CNV_INTERVAL','INTERVAL'],
         "CNV_CHR"     : ['CHR', 'CNV_CHR', 'CHROMOSOME', 'CHROMOSOMES'],
-        "CNV_START"   : ['CNV_START', 'PRED_START', 'START'],
-        "CNV_END"     : ['CNV_STOP', 'STOP', 'PRED_END', 'END'],
+        "CNV_START"   : ['CNV_START', 'PRED_START', 'START','st_bp'],
+        "CNV_END"     : ['CNV_STOP', 'STOP', 'PRED_END', 'END', 'ed_bp'],
         "CNV_TYPE"    : ['CNV_TYPE','TYPE','CNV'],
         "NUM_TARGETS" : ['NUM_TARG','NUM_TARGETS','Num_Targets_Wins','num_target'],
         "CNV_LABEL"   : ['LABEL_VAL','LABEL','GSD_info'],

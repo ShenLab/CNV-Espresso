@@ -70,7 +70,8 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
     nClasses = 3
     print('Total number classes: ', nClasses)
 
-    # ## Precision
+    # Prediction 
+    print("Predict the type of copy number images by CNV-espresso ...")
     img_pred = MobileNet_model.predict(img_np)
     pred_output_df = copy.deepcopy(cnv_info_df)
     pred_output_df.insert(pred_output_df.shape[1], 'Prob_DEL', "-")
@@ -103,7 +104,7 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
         pred_output_df_type_col = func.fetch_colName(CNV_TYPE_list,pred_output_df.columns)[0]
         if pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] == "NaN":
             pred_output_df.iloc[i,pred_output_df.columns.get_loc('Status')] = "Error"
-        elif pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] == pred_output_df.iloc[i, pred_output_df_type_col]:
+        elif pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] == pred_output_df.iloc[i, pred_output_df_type_col].upper():
             pred_output_df.iloc[i,pred_output_df.columns.get_loc('Status')] = "Positive"
         else:
             pred_output_df.iloc[i,pred_output_df.columns.get_loc('Status')] = "Negative"

@@ -76,11 +76,12 @@ def loadImgs(cnv_list, img_width, img_height):
         if index % 100 == 1:
             time_stamp = datetime.datetime.now()
             time_str   = time_stamp.strftime('%Y.%m.%d-%H:%M:%S')
-            print("[%s] Processing %d %s..."%(time_str, index, each_cnv))
+            print("[%s] Loading and croping images %d %s..."%(time_str, index, each_cnv))
         try:
             cnv_img = resizeCropImg(each_cnv, img_width, img_height)
             cnv_np[index] = tf.keras.preprocessing.image.img_to_array(cnv_img)
         except:
+            print("[Error] Please check the image files: %s. Note, we need to use absolutized pathname for images."%each_cnv)
             cnv_np[index] = None
     time_stamp = datetime.datetime.now()
     time_str   = time_stamp.strftime('%Y.%m.%d-%H:%M:%S')

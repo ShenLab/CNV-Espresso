@@ -6,7 +6,7 @@
 #S -l mem_free=18G
 #$ -pe smp 1
 
-#SBATCH -o ./logs/job.%j.out
+#SBATCH -o job.%j.out
 #SBATCH -J image 
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
@@ -15,6 +15,9 @@
 
 set -oe pipefail
 echo "Job started on `hostname` at `date`"
+export PATH=$HOME/miniconda3/bin:$PATH #Note: add these if it only works in a specific env 
+source activate str
+
 script_dir=$1
 rd_norm_dir=$2
 ref_samples_dir=$3
