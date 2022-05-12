@@ -9,8 +9,6 @@ def gc_normalization(windows_file, input_file_list, output_dir, debug_flag):
     print('Loading windows.bed ...')
     #TODO: columns of loadWindows function
     windows_dict = func.loadWindows(windows_file)
-    
-    pdb.set_trace()
     windows_chr  = windows_dict['chr']
     windows_start= windows_dict['start']
     windows_stop = windows_dict['stop']
