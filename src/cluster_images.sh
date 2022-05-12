@@ -15,8 +15,8 @@
 
 set -oe pipefail
 echo "Job started on `hostname` at `date`"
-export PATH=$HOME/miniconda3/bin:$PATH #Note: add these if it only works in a specific env 
-source activate str
+#export PATH=$HOME/miniconda3/bin:$PATH #Note: add these if it only works in a specific env 
+#source activate str
 
 script_dir=$1
 rd_norm_dir=$2

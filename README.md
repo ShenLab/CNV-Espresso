@@ -59,11 +59,11 @@ windows_file=${project_dir}/windows.bed
 
 # Suppose we want to calculate RD for all samples using cluster
 ## By SGE cluster
-qsub -t 1-${num_tasks} ${script_dir}sge_mosdepth.sh \
+qsub -t 1-${num_tasks} ${script_dir}cluster_mosdepth.sh \
     ${bam_cram_file_path_list} ${reference_file} ${windows_file} ${output_rd_dir}      
     
 ## By slurm workload manager
-sbatch -a 1-${num_tasks} ${script_dir}slurm_mosdepth.sh \
+sbatch -a 1-${num_tasks} ${script_dir}cluster_mosdepth.sh \
     ${bam_cram_file_path_list} ${reference_file} ${windows_file} ${output_rd_dir}
 ```
 

@@ -166,7 +166,7 @@ show results
 def show_confusion_matrix(validations, predictions, labels, output_img_file=None):
     matrix = metrics.confusion_matrix(validations, predictions)
     plt.figure(figsize=(6, 4),dpi=150)
-    sns.heatmap(matrix,
+    g=sns.heatmap(matrix,
                 cmap="coolwarm",
                 linecolor='white',
                 linewidths=1,
@@ -174,6 +174,9 @@ def show_confusion_matrix(validations, predictions, labels, output_img_file=None
                 yticklabels=labels,
                 annot=True,
                 fmt="d")
+    # center the yticklables. 
+    # ref: https://stackoverflow.com/questions/53295967/vertical-alignment-of-y-axis-ticks-on-seaborn-heatmap
+    g.set_yticklabels(labels=g.get_yticklabels(), va='center') 
     plt.title("Confusion Matrix", fontsize=16)
     plt.ylabel("True Label", fontsize=16)
     plt.xlabel("Predicted Label", fontsize=16)    
@@ -191,7 +194,7 @@ def confusion_matrix(model, test_img, test_label, nClasses, output_img_file=None
         labels = ['DEL', 'Not_DEL', 'Not_DUP', 'DUP']
     if nClasses == 3:
         print("3 classes label: 0-True del; 1-True dip; 2-True dup")
-        labels = ['DEL', 'DIP', 'DUP']   
+        labels = ['Rare del', 'Artifacts', 'Rare dup']   
     if nClasses == 2:
         print("2 classes label: 1-True; 0-False")
         labels = ['False', 'True']  

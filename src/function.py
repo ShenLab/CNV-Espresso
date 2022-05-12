@@ -258,7 +258,16 @@ def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixe
         pysam.tabix_index(RD_norm_file, seq_col=0, start_col=1, end_col=2) # Need to add '-p bed'
     # fetch
     f = pysam.TabixFile(RD_norm_file)
-    RD_fetched_data = f.fetch(cnv_chr, int(cnv_start), int(cnv_end), parser=pysam.asTuple())
+    try:
+        RD_fetched_data = f.fetch(cnv_chr, int(cnv_start), int(cnv_end), parser=pysam.asTuple())
+    except:
+        try:
+            cnv_chr = "chr"+cnv_chr
+            RD_fetched_data = f.fetch(cnv_chr, int(cnv_start), int(cnv_end), parser=pysam.asTuple())
+        except:
+            print("[Error] Failed to fetch SNVs in %s:%d-%d for sample:%s"%(str(cnv_chr), int(cnv_start), int(cnv_end), sampleID))
+            pdb.set_trace()
+
     RD_fetched_df = pd.DataFrame(data=RD_fetched_data)
     if RD_fetched_df.shape[1] == 6: # for CNV-Espresso normlized file
         RD_fetched_df.columns = ['chr', 'start', 'end', 'GC', 'RD_raw', colname]
@@ -289,6 +298,18 @@ def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixe
         # Norm files from CLAMMS do not contain 'GC' and 'RD_raw' columns
         pass
     return RD_fetched_df
+
+def fetchFileDialect(input_file):
+    header_list = []
+    extension = os.path.splitext(input_file)[-1][1:]
+    if extension == 'bz2':
+        fp = bz2.open(input_file, "rt")
+    else:
+        fp = open(input_file)
+
+    dialect = csv.Sniffer().sniff(fp.readline())
+    fp.close()
+    return(dialect.delimiter)
 
 def loadRefSamplesID(ref_samples_file, corr_threshold):
     ref_samplesID_df = pd.read_table(ref_samples_file,
@@ -366,13 +387,12 @@ def fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, cnv_chr, cnv_start, cn
     
 def fetch_relative_file_path(RD_norm_dir, sampleID, suffix):
     sample_rd_file = None
-    sample_rd_likely_file = RD_norm_dir+sampleID+'.*.'+suffix
+    sample_rd_likely_file = RD_norm_dir+'/'+sampleID+'.*.'+suffix
     sample_rd_file_list = glob.glob(sample_rd_likely_file)
-
     if len(sample_rd_file_list) == 1:
         sample_rd_file = sample_rd_file_list[0]
     else:
-        print("   -[Error]: there are multiple files for %s "%(sample_rd_likely_file))
+        print("   -[Error]: there are zero or multiple files for %s "%(sample_rd_likely_file))
         pdb.set_trace()
 
     if not os.path.exists(sample_rd_file):

@@ -41,7 +41,8 @@ def getBafInfo(snv_vcf_file, sampleID, cnv_chr, figure_left_coordinate, figure_r
         record_num = 0
         for record in records:
             record_num += 1
-            if record.is_snp and record.genotype(sampleID).is_variant:
+            #if record.is_snp and record.genotype(sampleID).is_variant:
+            if record.genotype(sampleID).is_variant:
                 snv_num += 1
                 snp_pos = record.POS
                 snp_het = "r" if record.genotype(sampleID).is_het == True else "b"
@@ -57,6 +58,7 @@ def getBafInfo(snv_vcf_file, sampleID, cnv_chr, figure_left_coordinate, figure_r
                 else:
                     baf_hom.append([snp_pos, baf, snp_DP])
                 time_stamp = datetime.datetime.now()
+        print("record_num in vcf:",record_num)
     else:
         print(num, sampleID, 'not in', snv_vcf_file)
         pdb.set_trace()
@@ -67,6 +69,7 @@ def getBafInfo(snv_vcf_file, sampleID, cnv_chr, figure_left_coordinate, figure_r
 
 def draw_baf_figure(ax, snv_vcf_file, cnv_sample, cnv_chr, figure_left_coordinate, figure_right_coordinate, info):
     [baf_het_df, baf_hom_df] = getBafInfo(snv_vcf_file, cnv_sample, cnv_chr, figure_left_coordinate, figure_right_coordinate)
+
     if info == 'Father':
         baf_color = 'b'
         baf_alpha = 0.4
@@ -341,15 +344,17 @@ def generate_images_human_view(RD_norm_dir, ref_samples_dir, cnv_file, vcf_file,
           once the cnv_w_img_file existed, insert/update each img path into the corresponding cell.
           Note: to avoid the file writing conflict, we input and output it w/ img path at the end.
     '''
+    ## CNV info
     cnv_info_w_img_file = output_path + '/cnv_info_w_img.csv'
     if not os.path.exists(cnv_info_w_img_file):
-        #cnv_data_df = pd.read_table(cnv_file, header=0, sep=r'\,|\t', engine='python')
-        cnv_data_df = pd.read_table(cnv_file)
+        file_dialect = func.fetchFileDialect(cnv_file)
+        if file_dialect == '\t':
+            cnv_data_df =  pd.read_table(cnv_file,low_memory=False,header=0, sep='\t')
+        elif file_dialect == ',':
+            cnv_data_df = pd.read_csv(cnv_file)
         cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
-
-    ## CNV info
-    #cnv_data_df = pd.read_table(cnv_file, header=0, sep=r'\,|\t', engine='python')
-    cnv_data_df = pd.read_table(cnv_file)
+    else:
+        cnv_data_df = pd.read_csv(cnv_info_w_img_file)
 
     ## Parse header
     cnv_data_header  = cnv_data_df.columns.tolist()
@@ -382,7 +387,6 @@ def generate_images_human_view(RD_norm_dir, ref_samples_dir, cnv_file, vcf_file,
         'col_GSD_label'    : col_GSD_label,
         'col_PRE_label'    : col_PRE_label
     }
-
     if sge_task_id == False:
         for index, row in cnv_data_df.iterrows(): 
            index += 1

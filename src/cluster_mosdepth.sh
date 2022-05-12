@@ -35,7 +35,7 @@ fi
 
 cram_file=$(head -n $ID $CRAM_FILE_LIST_W_PATH | tail -n 1 |awk '{print $1}')
 sample_name=$(head -n $ID $CRAM_FILE_LIST_W_PATH | tail -n 1 |awk '{print $2}')
-mosdepth -n --fasta ${REF_GENOME} --by ${TARGET_PROBES} --mapq 30 ${OUTPUT_RD_DIR}/${sample_name} $cram_file 
+mosdepth -n --fast-mode --fasta ${REF_GENOME} --by ${TARGET_PROBES} --mapq 30 ${OUTPUT_RD_DIR}/${sample_name} $cram_file 
 
 ncol=$(head -n1 <(zcat ${OUTPUT_RD_DIR}/${sample_name}.regions.bed.gz) | awk '{print NF}')
 if [[ $ncol == 5 ]]; then
