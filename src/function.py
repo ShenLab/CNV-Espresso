@@ -181,7 +181,7 @@ def getHeader(input_file):
 def loadRD(filename):
     rd_matrix = np.loadtxt(filename, delimiter='\t', skiprows=0,
             dtype={'names': ('chr', 'start', 'stop','RD'),
-                'formats': ('U4', np.int, np.int, np.float)}) 
+                'formats': ('U5', np.int, np.int, np.float)}) 
     rd_matrix_sort = np.sort(rd_matrix, order=['chr', 'start'] )
     return rd_matrix_sort
 
@@ -209,12 +209,12 @@ def loadWindows(windows_filename):
     try:
         targets = np.loadtxt(windows_filename, delimiter='\t', skiprows=0,
                 dtype={'names': ('chr', 'start', 'stop','interval','unknow1','gc','mappability','unknow2'),
-                       'formats': ('U4', np.int, np.int, 'U20', np.int, np.float, np.float, np.int)})
+                       'formats': ('U5', np.int, np.int, 'U20', np.int, np.float, np.float, np.int)})
     except:
         try:
             targets = np.loadtxt(windows_filename, delimiter='\t', skiprows=0,
                      dtype={'names': ('chr', 'start', 'stop','gc'),
-                         'formats': ('U4', np.int, np.int,  np.float)})
+                         'formats': ('U5', np.int, np.int,  np.float)})
         except:
             print("[Error] Please check the windows.bed file.")
             pdb.set_trace()

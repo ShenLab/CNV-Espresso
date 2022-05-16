@@ -35,6 +35,14 @@ def getBafInfo(snv_vcf_file, sampleID, cnv_chr, figure_left_coordinate, figure_r
     vcf_reader = vcf.Reader(filename=snv_vcf_file)
     baf_x, baf_y, baf_het, baf_DP = [], [], [], []
     baf_het, baf_hom = [], []
+
+    if cnv_chr not in vcf_reader.contigs:
+       if "chr" + cnv_chr in vcf_reader.contigs:
+           cnv_chr = "chr" + cnv_chr
+       else:
+           print("[Error]: there is no chromosome %s in %s"%(str(cnv_chr), snv_vcf_file))
+           pdb.set_trace()
+
     if vcf_reader != None:
         records = vcf_reader.fetch(cnv_chr, figure_left_coordinate, figure_right_coordinate + 1)
         snv_num = 0
@@ -49,7 +57,7 @@ def getBafInfo(snv_vcf_file, sampleID, cnv_chr, figure_left_coordinate, figure_r
                 snp_DP = record.genotype(sampleID).data.DP
                 ref_allele_reads = record.genotype(sampleID).data.AD[0]
                 alt_allele_reads = sum(x for x in record.genotype(sampleID).data.AD[1: len(record.genotype(sampleID).data.AD)])
-                baf = round(alt_allele_reads/(ref_allele_reads+alt_allele_reads),2)
+                baf = round((alt_allele_reads+1)/(ref_allele_reads+alt_allele_reads+1),2)
                 baf_x.append(snp_pos)
                 baf_y.append(baf)
                 baf_DP.append(snp_DP)
@@ -91,10 +99,16 @@ def draw_baf_figure(ax, snv_vcf_file, cnv_sample, cnv_chr, figure_left_coordinat
         sns.rugplot(data=baf_hom_df, x='snv_pos', color='b', alpha=.5)
 
 def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file, 
-                        RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, 
-                        split_img, trio, ped_file):
+                        RD_norm_dir, ref_samples_dir, output_path, suffix, corr_threshold, flanking, 
+                        split_img, trio, ped_file, overwrite_img):
     index = sge_task_id-1
     row   = cnv_data_df.iloc[index]
+
+    # ignore img if overwrite is turned off
+    if (overwrite_img == 'False' and cnv_data_df.loc[index, 'img_path'] != "-"):
+        print("Image %d existed. Ignore this CNV, since `overwrite_img` is turned off."%index)
+        return None
+
     col_sampleID       = col_dict['col_sampleID']
     col_cnv_interval   = col_dict['col_cnv_interval']
     col_cnv_chr        = col_dict['col_cnv_chr']
@@ -102,6 +116,7 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
     col_cnv_end        = col_dict['col_cnv_end']
     col_cnv_type       = col_dict['col_cnv_type']
     col_cnv_num_targets= col_dict['col_cnv_num_targets']
+    col_cnv_num_wins   = col_dict['col_cnv_num_wins']
     col_cnv_canoes     = col_dict['col_cnv_canoes']
     col_cnv_xhmm       = col_dict['col_cnv_xhmm']
     col_cnv_clamms     = col_dict['col_cnv_clamms']
@@ -121,7 +136,7 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
         cnv_start = int(row[col_cnv_start])
         cnv_end   = int(row[col_cnv_end])
     cnv_type  = row[col_cnv_type]
-    cnv_type  = 'DEL' if cnv_type == 1 else 'DUP'
+    cnv_type  = 'DEL' if (cnv_type == 1 or cnv_type == 'DEL') else 'DUP'
     cnv_type  = re.sub(r'[^\w\s]','',cnv_type)
 
     if cnv_type == 1:
@@ -130,11 +145,11 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
         cnv_type = "DUP"
     else:
         pass
-
     #case_sample_color = color_del if cnv_type == 'DEL' else color_dup
     case_sample_color = 'red'
 
     cnv_num_targets   = row[col_cnv_num_targets] if col_cnv_num_targets != None else 'NA'
+    cnv_num_wins      = row[col_cnv_num_wins] if col_cnv_num_wins != None else 'NA'
     cnv_canoes        = str(row[col_cnv_canoes]) if col_cnv_canoes != None else 'NA'
     cnv_xhmm          = str(row[col_cnv_xhmm])   if col_cnv_xhmm   != None else 'NA'
     cnv_clamms        = str(row[col_cnv_clamms]) if col_cnv_clamms != None else 'NA'
@@ -203,13 +218,20 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
     ## plot the entire cnv into one image
     ################################################################
     print("  --Step3. Illustrating an image for the entire CNV ...")
-    title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type +" "+ str((cnv_end-cnv_start)/1000) + 'kb'
+    title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type + \
+                 " "+ str((cnv_end-cnv_start)/1000) + 'kb' + " #Targets(Wins):"+str(cnv_num_wins)
+    
+    if suffix==None:
+        suffix_content=""
+    else:
+        suffix_content="_"+str(suffix)
+
     if str(trio).upper() == 'TRUE':
         image_file = str(index+1).zfill(len(str(cnv_data_df.shape[0])))+"_"+sampleID + \
-                     "_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_type+"_trio.pdf"
+                     "_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_type+suffix_content+"_trio.pdf"
     else:
         image_file = str(index+1).zfill(len(str(cnv_data_df.shape[0])))+"_"+sampleID + \
-                     "_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_type+".pdf"
+                     "_"+str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end)+"_"+cnv_type+suffix_content+".pdf"
 
     ### Calculate the means and sigmas of ref samples for each target region
     '''
@@ -269,18 +291,35 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
     ax_rd.set_title(title_info, fontweight='heavy')
 
     ### plot case sample
+    # divide into CNV and boundary regions
+    cnv_region_df = essential_df[(essential_df['start']>=cnv_start) & (essential_df['end']<=cnv_end)]
+    boundary_region_df = essential_df[(essential_df['start']<cnv_start) | (essential_df['end']>cnv_end)]
+
     if str(trio).upper() == 'TRUE':
-        ax_rd.plot(essential_df['position'], (essential_df['PaternalNormRD']-essential_df['mu'])/essential_df['mu'], \
+        # illustrate cnv regions (link dots w/ line)
+        ax_rd.plot(cnv_region_df['position'], (cnv_region_df['PaternalNormRD']-cnv_region_df['mu'])/cnv_region_df['mu'], \
                     color='b', markerfacecolor='none', marker='.', markersize=10, linewidth=1, alpha=0.4, label='Father')
-        ax_rd.plot(essential_df['position'], (essential_df['MaternalNormRD']-essential_df['mu'])/essential_df['mu'], \
+        ax_rd.plot(cnv_region_df['position'], (cnv_region_df['MaternalNormRD']-cnv_region_df['mu'])/cnv_region_df['mu'], \
                     color='g', markerfacecolor='none', marker='.', markersize=10, linewidth=1, alpha=0.4, label='Mother')
-        ax_rd.plot(essential_df['position'], (essential_df['RD_norm']-essential_df['mu'])/essential_df['mu'], \
+        ax_rd.plot(cnv_region_df['position'], (cnv_region_df['RD_norm']-cnv_region_df['mu'])/cnv_region_df['mu'], \
                     color='r', markerfacecolor='none', marker='.', markersize=10, linewidth=1, alpha=0.8, label='Offspring')
+        # illustrate boundary regions (just dots without line)
+        ax_rd.plot(boundary_region_df['position'], (boundary_region_df['PaternalNormRD']-boundary_region_df['mu'])/boundary_region_df['mu'], \
+                    color='b', markerfacecolor='none', marker='.', markersize=10, linewidth=1, linestyle = 'None', alpha=0.25, label='Father')
+        ax_rd.plot(boundary_region_df['position'], (boundary_region_df['MaternalNormRD']-boundary_region_df['mu'])/boundary_region_df['mu'], \
+                    color='g', markerfacecolor='none', marker='.', markersize=10, linewidth=1, linestyle = 'None', alpha=0.25, label='Mother')
+        ax_rd.plot(boundary_region_df['position'], (boundary_region_df['RD_norm']-boundary_region_df['mu'])/boundary_region_df['mu'], \
+                    color='r', markerfacecolor='none', marker='.', markersize=10, linewidth=1, linestyle = 'None', alpha=0.4, label='Offspring')
         ax_rd.legend(loc='upper right')
 
     else:
-        ax_rd.plot(essential_df['position'], (essential_df['RD_norm']-essential_df['mu'])/essential_df['mu'], \
+        # illustrate cnv regions (link dots w/ line)
+        ax_rd.plot(cnv_region_df['position'], (cnv_region_df['RD_norm']-cnv_region_df['mu'])/cnv_region_df['mu'], \
                     color='r', markerfacecolor='none', marker='.', markersize=10, linewidth=1, alpha=0.8)
+    
+        # illustrate boundary regions (just dots without line)
+        ax_rd.plot(boundary_region_df['position'], (boundary_region_df['RD_norm']-boundary_region_df['mu'])/boundary_region_df['mu'], \
+                    color='r', markerfacecolor='none', marker='.', markersize=10, linewidth=1, linestyle = 'None', alpha=0.4)
     
     ax_rd.set_ylabel('Norm depth relative to diploid', fontsize=15, fontweight='normal')
     ax_rd.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1, decimals=None, symbol='%', is_latex=False))
@@ -295,14 +334,14 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
     ### plot the SNVs
     boundary_length = round((figure_right - figure_left+1)/1000, 2)
     print("          Getting SNV information and drawing BAF plot. Boundary for BAF: %s:%d-%d, %fkb ..."%(cnv_chr, figure_left, figure_right, boundary_length))
-    draw_baf_figure(ax_baf, vcf_file, sampleID,   cnv_chr, figure_left, figure_right, info='Offspring')
+    draw_baf_figure(ax_baf, vcf_file, sampleID, cnv_chr, figure_left, figure_right, info='Offspring')
     if str(trio).upper() == 'TRUE':
         draw_baf_figure(ax_baf, vcf_file, paternalID, cnv_chr, figure_left, figure_right, info='Father')
         draw_baf_figure(ax_baf, vcf_file, maternalID, cnv_chr, figure_left, figure_right, info='Mother')
     ax_baf.set_xlim(figure_left, figure_right)
-    ax_baf.set_ylim(-0.05,1.05)
+    ax_baf.set_ylim(-0.05, 1.05)
     ax_baf.set_xlabel('Chromosome position', fontsize=15, fontweight='normal')
-    ax_baf.set_ylabel('Alternative allele frequency', fontsize=15, fontweight='normal')
+    ax_baf.set_ylabel('Alternative allele fraction', fontsize=15, fontweight='normal')
     ax_baf.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1, decimals=None, symbol='%', is_latex=False))
 
     fig.align_labels() 
@@ -315,7 +354,7 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
     print("  --Step5. Update the %s with img path."%cnv_info_w_img_file)
     lock_flag = lockfile.LockFile(cnv_info_w_img_file)
     while lock_flag.is_locked():
-        sleep(0.01)
+        sleep(0.1)
     lock_flag.acquire()
     cnv_data_df = pd.read_csv(cnv_info_w_img_file)
     cnv_data_df.loc[index, 'img_path'] = img_path
@@ -324,8 +363,8 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
     print("  --[Done].")
 
         
-def generate_images_human_view(RD_norm_dir, ref_samples_dir, cnv_file, vcf_file, output_path, corr_threshold,
-                               flanking, split_img, sge_task_id, trio, pedigree_file):
+def generate_images_human_view(RD_norm_dir, ref_samples_dir, cnv_file, vcf_file, output_path, suffix, corr_threshold,  
+                               flanking, split_img, sge_task_id, trio, pedigree_file, overwrite_img):
     try:
         sge_task_id = int(sge_task_id)
     except:
@@ -370,6 +409,7 @@ def generate_images_human_view(RD_norm_dir, ref_samples_dir, cnv_file, vcf_file,
     col_cnv_xhmm     = func.fetch_colName(['XHMM','XHMM_RT'], cnv_data_header)[0]
     col_cnv_clamms   = func.fetch_colName(['CLAMMS','CLAMMS_RT'], cnv_data_header)[0]
     col_cnv_num_targets = func.fetch_colName(NUM_TARGETS, cnv_data_header)[0]
+    col_cnv_num_wins = func.fetch_colName(['num_of_win'], cnv_data_header)[0]
     col_cnv_numCarriers = func.fetch_colName(['Num_Carriers(inGivenCohort)'], cnv_data_header)[0]
 
     col_dict = {
@@ -380,6 +420,7 @@ def generate_images_human_view(RD_norm_dir, ref_samples_dir, cnv_file, vcf_file,
         'col_cnv_end'      : col_cnv_end,
         'col_cnv_type'     : col_cnv_type,
         'col_cnv_num_targets': col_cnv_num_targets,
+        'col_cnv_num_wins' : col_cnv_num_wins,
         'col_cnv_canoes'   : col_cnv_canoes,
         'col_cnv_xhmm'     : col_cnv_xhmm,
         'col_cnv_clamms'   : col_cnv_clamms,
@@ -391,11 +432,11 @@ def generate_images_human_view(RD_norm_dir, ref_samples_dir, cnv_file, vcf_file,
         for index, row in cnv_data_df.iterrows(): 
            index += 1
            generate_one_image(vcf_file, cnv_data_df, index, col_dict, cnv_info_w_img_file, 
-                            RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, 
-                            split_img, trio, pedigree_file)
+                            RD_norm_dir, ref_samples_dir, output_path, suffix, corr_threshold, flanking, 
+                            split_img, trio, pedigree_file, overwrite_img)
 
     else:
         generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
-                            RD_norm_dir, ref_samples_dir, output_path, corr_threshold, flanking, 
-                            split_img, trio, pedigree_file)
+                            RD_norm_dir, ref_samples_dir, output_path, suffix, corr_threshold, flanking, 
+                            split_img, trio, pedigree_file, overwrite_img)
 
