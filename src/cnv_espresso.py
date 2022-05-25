@@ -86,13 +86,14 @@ def images_human_view(args):
     split_img       = args.split
     trio            = args.trio
     pedigree_file   = args.pedigree
+    overwrite_img   = args.overwrite_img
     try:
         sge_task_id = int(args.specific)
     except:
         sge_task_id = 'all'
 
     generate_images_human_view(RD_norm_dir, ref_samples_dir, cnv_file, vcf_file, output_path, suffix, corr_threshold, flanking, \
-                               split_img, sge_task_id, trio, pedigree_file)
+                               split_img, sge_task_id, trio, pedigree_file, overwrite_img)
 
 def train(args):
     true_del_file    = args.true_del

@@ -14,6 +14,7 @@ import sys
 import lockfile
 import datetime
 from time import sleep
+from os.path import exists
 
 ## Variables
 global_var_dict = func.global_variables()
@@ -42,7 +43,7 @@ def getBafInfo(snv_vcf_file, sampleID, cnv_chr, figure_left_coordinate, figure_r
        else:
            print("[Error]: there is no chromosome %s in %s"%(str(cnv_chr), snv_vcf_file))
            pdb.set_trace()
-
+    
     if vcf_reader != None:
         records = vcf_reader.fetch(cnv_chr, figure_left_coordinate, figure_right_coordinate + 1)
         snv_num = 0
@@ -54,18 +55,21 @@ def getBafInfo(snv_vcf_file, sampleID, cnv_chr, figure_left_coordinate, figure_r
                 snv_num += 1
                 snp_pos = record.POS
                 snp_het = "r" if record.genotype(sampleID).is_het == True else "b"
-                snp_DP = record.genotype(sampleID).data.DP
-                ref_allele_reads = record.genotype(sampleID).data.AD[0]
-                alt_allele_reads = sum(x for x in record.genotype(sampleID).data.AD[1: len(record.genotype(sampleID).data.AD)])
-                baf = round((alt_allele_reads+1)/(ref_allele_reads+alt_allele_reads+1),2)
-                baf_x.append(snp_pos)
-                baf_y.append(baf)
-                baf_DP.append(snp_DP)
-                if record.genotype(sampleID).is_het == True:
-                    baf_het.append([snp_pos, baf, snp_DP])
-                else:
-                    baf_hom.append([snp_pos, baf, snp_DP])
-                time_stamp = datetime.datetime.now()
+                try:
+                    snp_DP = record.genotype(sampleID).data.DP
+                    ref_allele_reads = record.genotype(sampleID).data.AD[0]
+                    alt_allele_reads = sum(x for x in record.genotype(sampleID).data.AD[1: len(record.genotype(sampleID).data.AD)])
+                    baf = round((alt_allele_reads+1)/(ref_allele_reads+alt_allele_reads+1),2)
+                    baf_x.append(snp_pos)
+                    baf_y.append(baf)
+                    baf_DP.append(snp_DP)
+                    if record.genotype(sampleID).is_het == True:
+                        baf_het.append([snp_pos, baf, snp_DP])
+                    else:
+                        baf_hom.append([snp_pos, baf, snp_DP])
+                    time_stamp = datetime.datetime.now()
+                except:
+                    pass
         print("record_num in vcf:",record_num)
     else:
         print(num, sampleID, 'not in', snv_vcf_file)
@@ -105,7 +109,7 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
     row   = cnv_data_df.iloc[index]
 
     # ignore img if overwrite is turned off
-    if (overwrite_img == 'False' and cnv_data_df.loc[index, 'img_path'] != "-"):
+    if (overwrite_img == 'False' and cnv_data_df.loc[index, 'img_path'] != "-" and exists(cnv_data_df.loc[index, 'img_path'])):
         print("Image %d existed. Ignore this CNV, since `overwrite_img` is turned off."%index)
         return None
 
@@ -178,7 +182,7 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
     ## Confirm the boundries
     if str(flanking).upper() == 'TRUE':
         cnv_length   = cnv_end   - cnv_start +1
-        figure_left  = cnv_start - cnv_length
+        figure_left  = max(0, cnv_start - cnv_length)
         figure_right = cnv_end   + cnv_length
     else:
         figure_left  = cnv_start
@@ -218,8 +222,10 @@ def generate_one_image(vcf_file, cnv_data_df, sge_task_id, col_dict, cnv_info_w_
     ## plot the entire cnv into one image
     ################################################################
     print("  --Step3. Illustrating an image for the entire CNV ...")
+    RD_cnv_only_region_df = func.fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixed_win_num, colname='RD_norm')
+    # Using `RD_cnv_only_region_df.shape[0]` instead of `cnv_num_wins`, since it works for WGS data
     title_info = sampleID+" "+str(cnv_chr)+":"+str(cnv_start)+"-"+str(cnv_end)+" "+cnv_type + \
-                 " "+ str((cnv_end-cnv_start)/1000) + 'kb' + " #Targets(Wins):"+str(cnv_num_wins)
+                 " "+ str((cnv_end-cnv_start)/1000) + 'kb' + " #Targets(Wins):"+ str(RD_cnv_only_region_df.shape[0]) #str(cnv_num_wins)
     
     if suffix==None:
         suffix_content=""

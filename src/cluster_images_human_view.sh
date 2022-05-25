@@ -10,7 +10,7 @@
 #SBATCH -J image_human_view 
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
-#SBATCH --mem 18G
+#SBATCH --mem 24G
 #SBATCH --time=99:99:99
 
 set -oe pipefail

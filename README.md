@@ -100,9 +100,14 @@ windows_file=${project_dir}/windows.bed
 RD_list=${project_dir}/sample_raw_rd.txt
 output_dir=${project_dir}/norm/
 
-# E.g., we want to process 1000 samples
+# E.g., we want to normalize 1000 samples
+## By SGE cluster
 qsub -t 1-1000 ${script_dir}cluster_gc_norm.sh \
-    ${windows_file} ${RD_list} ${output_dir}
+    ${script_dir} ${windows_file} ${RD_list} ${output_dir}
+
+## By Slurm workload manager
+sbatch -a 1-1000 ${script_dir}cluster_gc_norm.sh \
+    ${script_dir} ${windows_file} ${RD_list} ${output_dir}
 ```
 
 ### Step 4. Select reference samples

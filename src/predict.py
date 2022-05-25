@@ -75,7 +75,7 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
     img_pred = MobileNet_model.predict(img_np)
     pred_output_df = copy.deepcopy(cnv_info_df)
     pred_output_df.insert(pred_output_df.shape[1], 'Prob_DEL', "-")
-    pred_output_df.insert(pred_output_df.shape[1], 'Prob_DIP', "-")
+    pred_output_df.insert(pred_output_df.shape[1], 'Prob_Artifacts', "-")
     pred_output_df.insert(pred_output_df.shape[1], 'Prob_DUP', "-")
     pred_output_df.insert(pred_output_df.shape[1], 'Prob', "-")
     pred_output_df.insert(pred_output_df.shape[1], 'Prediction', "-")
@@ -85,7 +85,7 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
     for i in range(len(img_pred)):
         num += 1
         pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prob_DEL')] = img_pred[i][0]
-        pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prob_DIP')] = img_pred[i][1]
+        pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prob_Artifacts')] = img_pred[i][1]
         pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prob_DUP')] = img_pred[i][2]
         pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prob')] = np.max(img_pred[i])
             
@@ -95,7 +95,7 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
             if np.argmax(img_pred[i]) == 0:
                 pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "DEL"
             elif np.argmax(img_pred[i]) == 1:
-                pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "DIP_or_NotRare"
+                pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "Artifacts"
             elif np.argmax(img_pred[i]) == 2:
                 pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "DUP"
             else:

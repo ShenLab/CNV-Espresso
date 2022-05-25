@@ -212,27 +212,34 @@ def confusion_matrix(model, test_img, test_label, nClasses, output_img_file=None
     print("\n--- Classification report for test data ---\n")
     print(classification_report(max_label_test, max_pred_test))
    
-def draw_loss_accuracy_curves(history, project_name, output_img_file=None):
+def draw_loss_accuracy_curves(history, project_name, output_img_path=None):
     plt.figure(figsize=[8,6])
-    plt.plot(history.history['loss'],'r',linewidth=3.0)
-    plt.plot(history.history['val_loss'],'b',linewidth=3.0)
+    plt.plot(history.history['loss'],'r', marker='o', markersize=8, linewidth=3.0)
+    plt.plot(history.history['val_loss'],'b', marker='o', markersize=8, linewidth=3.0)
     plt.legend(['Training loss', 'Validation Loss'],fontsize=18)
     plt.xlabel('Epochs ',fontsize=16)
     plt.ylabel('Loss',fontsize=16)
     plt.title('Loss Curves',fontsize=16)
-
+    
+    if output_img_path != None:
+        plt.savefig(output_img_path+ "/" +"supp_fig_loss_curves.pdf", facecolor='w', edgecolor='w', bbox_inches = 'tight')
+        print("Figure has been output plot to:",output_img_path)
+    plt.show()
+    plt.close()
+    
     plt.figure(figsize=[8,6])
-    plt.plot(history.history['accuracy'],'r',linewidth=3.0)
-    plt.plot(history.history['val_accuracy'],'b',linewidth=3.0)
+    plt.plot(history.history['accuracy'],'r', marker='o', markersize=8, linewidth=3.0)
+    plt.plot(history.history['val_accuracy'],'b', marker='o', markersize=8, linewidth=3.0)
     plt.legend(['Training Accuracy', 'Validation Accuracy'],fontsize=18)
     plt.xlabel('Epochs ',fontsize=16)
     plt.ylabel('Accuracy',fontsize=16)
     plt.ylim(0.7, 1)
-    plt.title(project_name+' accuracy curves',fontsize=16)
+    #plt.title(project_name+' accuracy curves',fontsize=16)
+    plt.title('Accuracy curves',fontsize=16)
 
-    if output_img_file != None:
-        plt.savefig(output_img_file, facecolor='w', edgecolor='w', bbox_inches = 'tight')
-        print("Figure has been output plot to:",output_img_file)
+    if output_img_path != None:
+        plt.savefig(output_img_path+ "/" +"supp_fig_accuracy_curves.pdf", facecolor='w', edgecolor='w', bbox_inches = 'tight')
+        print("Figure has been output plot to:",output_img_path)
     plt.show()
     plt.close()
    
@@ -281,7 +288,7 @@ def draw_multiple_roc_curve(tpr_list, fpr_list, auc_list, info_list, title_conte
     plt.plot([0, 1], [0, 1], 'k--')
         
     for roc_i in range(len(auc_list)):
-        plt.plot(fpr_list[roc_i], tpr_list[roc_i], lw=2, alpha=0.3, 
+        plt.plot(fpr_list[roc_i], tpr_list[roc_i], lw=2, alpha=1, 
                  label='%s (AUC = %0.3f)' % (info_list[roc_i], auc_list[roc_i]))
 
     plt.xlabel('False positive rate',fontsize=label_size)
@@ -303,7 +310,7 @@ def draw_multiple_roc_curve(tpr_list, fpr_list, auc_list, info_list, title_conte
     plt.plot([0, 1], [0, 1], 'k--')
 
     for roc_i in range(len(auc_list)):
-        plt.plot(fpr_list[roc_i], tpr_list[roc_i], lw=2, alpha=0.3, 
+        plt.plot(fpr_list[roc_i], tpr_list[roc_i], lw=2, alpha=1, 
                  label='%s (AUC = %0.3f)' % (info_list[roc_i], auc_list[roc_i]))
 
     plt.xlabel('False positive rate',fontsize=label_size)
