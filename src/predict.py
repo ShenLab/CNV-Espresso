@@ -93,11 +93,11 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
             pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "NaN"
         else:
             if np.argmax(img_pred[i]) == 0:
-                pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "DEL"
+                pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "Rare_del"
             elif np.argmax(img_pred[i]) == 1:
-                pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "Artifacts"
+                pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "Artifact"
             elif np.argmax(img_pred[i]) == 2:
-                pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "DUP"
+                pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] = "Rare_dup"
             else:
                 pdb.set_trace()
             
