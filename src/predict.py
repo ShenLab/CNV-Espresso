@@ -13,7 +13,7 @@ from keras.models import load_model
 import function as func
 import function_dl as func_dl
 
-def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
+def cnn_prediction(cnv_file, model_file, use_gpu, output_file):    
     # GPU or CPU selection
     if use_gpu == False or use_gpu == 'False':
         print("Using CPU ...")
@@ -102,9 +102,17 @@ def cnn_prediction(cnv_file, model_file, use_gpu, output_file):
                 pdb.set_trace()
             
         pred_output_df_type_col = func.fetch_colName(CNV_TYPE_list,pred_output_df.columns)[0]
-        if pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] == "NaN":
+
+        # Comparing CNV type between CNV caller and CNV-espresso
+        cnv_caller_cnvType  = pred_output_df.iloc[i, pred_output_df_type_col]
+        cnvespresso_cnvType = pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')]
+        ## normlize the name of CNV type
+        cnv_caller_cnvType_norm  = func.norm_cnv_type(cnv_caller_cnvType)
+        cnvespresso_cnvType_norm = func.norm_cnv_type(cnvespresso_cnvType)
+
+        if cnvespresso_cnvType_norm == "NAN":
             pred_output_df.iloc[i,pred_output_df.columns.get_loc('Status')] = "Error"
-        elif pred_output_df.iloc[i,pred_output_df.columns.get_loc('Prediction')] == pred_output_df.iloc[i, pred_output_df_type_col].upper():
+        elif cnvespresso_cnvType_norm == cnv_caller_cnvType_norm:
             pred_output_df.iloc[i,pred_output_df.columns.get_loc('Status')] = "Positive"
         else:
             pred_output_df.iloc[i,pred_output_df.columns.get_loc('Status')] = "Negative"

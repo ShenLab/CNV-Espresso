@@ -16,7 +16,7 @@ def main():
 # input/output/parse files
 def global_variables():
     global_variable_dict = {
-        "SAMPLE"      : ['SAMPLE','SAMPLE_ID','ID','sample_name'],
+        "SAMPLE"      : ['SAMPLE','SAMPLE_ID','ID','sample_name','sampleID'],
         "CNV_INTERVAL": ['CNV_INTERVAL','INTERVAL'],
         "CNV_CHR"     : ['CHR', 'CNV_CHR', 'CHROMOSOME', 'CHROMOSOMES'],
         "CNV_START"   : ['CNV_START', 'PRED_START', 'START','st_bp'],
@@ -27,6 +27,16 @@ def global_variables():
         "REF"         : ['ref','REF','Ref','Reference','hg19','hg38']
     }
     return global_variable_dict
+
+def norm_cnv_type(cnv_type):
+    if cnv_type.upper() in ["DEL", "DELETION", "RARE_DEL", "RARE_DELETION", "RARE DELETION"]:
+        cnv_type = "DEL"
+    elif cnv_type.upper() in ["DUP", "DUPLICATION", "RARE_DUP", "RARE_DUPLICATION", "RARE DUPLICATION"]:
+        cnv_type = "DUP"
+    else:
+        pass
+
+    return cnv_type
 
 def parseInterval(cnv_interval):
     pattern = re.compile(r'(\S+):(\d+)-(\d+)')

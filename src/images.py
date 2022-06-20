@@ -276,11 +276,14 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
         if os.path.splitext(cnv_file)[-1][1:] == 'csv':
             cnv_data_df = pd.read_csv(cnv_file)
         else:    
-            #cnv_data_df = pd.read_table(cnv_file, header=0, sep=r'\,|\t', engine='python')
             cnv_data_df = pd.read_table(cnv_file)
         cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
     else:
-        cnv_data_df = pd.read_csv(cnv_info_w_img_file)
+        # make sure the file is not locked(under writing).
+        lock_flag = lockfile.LockFile(cnv_info_w_img_file)
+        while lock_flag.is_locked():
+            sleep(random.randint(1,100)/1000)
+        cnv_data_df = pd.read_csv(cnv_info_w_img_file)  
 
     '''creat columns or fillna'''
     if 'num_of_win' in cnv_data_df.columns:
