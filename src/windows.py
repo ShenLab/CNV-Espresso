@@ -17,7 +17,15 @@ def calculate_gc(target_list, ref_file):
             chr = i_chr
             print('Calculating GC content for targets in chr ' + i_chr)
             
-        r_region = fasta_f.fetch(i_chr, i_start, i_end)
+        try:
+            r_region = fasta_f.fetch(i_chr, i_start, i_end)
+        except:
+            if 'chr' in i_chr:
+                i_chr = i_chr.replace("chr","")
+            else:
+                i_chr = 'chr' + str(i_chr)
+            r_region = fasta_f.fetch(i_chr, i_start, i_end)
+
         reg_len  = i_end - i_start + 1
         GC = 0
         for b in range(len(r_region)):
