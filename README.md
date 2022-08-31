@@ -1,7 +1,7 @@
 # _CNV-espresso_
+<img src="https://shenlab.github.io/images/cnv_espresso.png?raw=true" style="float:right;width:150px" alt="cnv-espresso">
 A tool designed for confirming ***C***opy ***N***umber ***V***ariants from ***E***xome ***S***equencing ***Pre***diction***s*** in ***S***ilic***o***
 
-<img src="https://shenlab.github.io/images/cnv_espresso.png?raw=true" style="float:right;width:150px" alt="cnv-espresso">
 
 
 
