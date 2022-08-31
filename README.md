@@ -1,6 +1,9 @@
 # _CNV-espresso_
 A tool designed for confirming ***C***opy ***N***umber ***V***ariants from ***E***xome ***S***equencing ***Pre***diction***s*** in ***S***ilic***o***
 
+<img src="https://shenlab.github.io/images/cnv_espresso.png?raw=true" width="256" alt="cnv-espresso">
+
+
 
 ## Dependencies
 
