@@ -24,6 +24,7 @@ ref_samples_dir=$3
 cnv_file=$4
 output_dir=$5
 overwrite_img=$6
+offspring_img=$7
 
 python ${script_dir}cnv_espresso.py images \
     --rd_norm_dir ${rd_norm_dir} \
@@ -31,6 +32,7 @@ python ${script_dir}cnv_espresso.py images \
     --cnv_list ${cnv_file} \
     --output ${output_dir} \
     --specific ${SGE_TASK_ID}${SLURM_ARRAY_TASK_ID} \
-    --overwrite_img ${overwrite_img}
+    --overwrite_img ${overwrite_img} \
+    --offspring_img ${offspring_img}
 
 echo "Job ended on `hostname` at `date`"

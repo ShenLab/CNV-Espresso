@@ -264,6 +264,10 @@ def fetchRDdata_byTabix(RD_norm_dir, sampleID, cnv_chr, cnv_start, cnv_end, fixe
     if not os.path.exists(RD_norm_dir):
         print('No tabular file: %s'%RD_norm_file) 
         return ["No tabular file"]
+    if RD_norm_file == None:
+        print("No this RD_norm_file %s for sample:%s"%(str(RD_norm_file), sampleID))    
+        return ["No norm file"]
+
     if not os.path.exists(RD_norm_file+'.tbi'):
         pysam.tabix_index(RD_norm_file, seq_col=0, start_col=1, end_col=2) # Need to add '-p bed'
     # fetch
@@ -397,17 +401,21 @@ def fetchRefRDdata_byTabix(RD_norm_dir, ref_samples_file, cnv_chr, cnv_start, cn
     
 def fetch_relative_file_path(RD_norm_dir, sampleID, suffix):
     sample_rd_file = None
-    sample_rd_likely_file = RD_norm_dir+'/'+sampleID+'.*.'+suffix
+    #sample_rd_likely_file = RD_norm_dir+'/'+sampleID+'.*.'+suffix
+    sample_rd_likely_file = RD_norm_dir+'/'+sampleID+'*.'+suffix
     sample_rd_file_list = glob.glob(sample_rd_likely_file)
     if len(sample_rd_file_list) == 1:
         sample_rd_file = sample_rd_file_list[0]
     else:
         print("   -[Error]: there are zero or multiple files for %s "%(sample_rd_likely_file))
-        pdb.set_trace()
 
-    if not os.path.exists(sample_rd_file):
-        print("    -[Error]: error in normalized RD file of %s "%(sample_rd_file))
-        exit(0)
+    try:
+        if not os.path.exists(sample_rd_file):
+            print("    -[Error]: error in normalized RD file of %s "%(sample_rd_file))
+            # exit(0)
+    except:
+        pass
+            
     return sample_rd_file
 
 def try_except(fn, default):

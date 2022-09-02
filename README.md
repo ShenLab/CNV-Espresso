@@ -1,6 +1,8 @@
 # _CNV-espresso_
 A tool designed for confirming ***C***opy ***N***umber ***V***ariants from ***E***xome ***S***equencing ***Pre***diction***s*** in ***S***ilic***o***
 
+<img src="https://shenlab.github.io/images/cnv_espresso.png?raw=true" style="float:right;width:150px" alt="cnv-espresso">
+
 
 ## Dependencies
 
@@ -71,6 +73,10 @@ Collect all the coverage files for downstream usage.
 
 ```bash
 ls ${output_rd_dir}*.cov.bed.gz > ${project_dir}/sample_raw_rd.txt 
+```
+or
+```bash
+find ~/projects_meta_data/spark/02_RD_mosdepth_windows/SPARK_WES_1/ -maxdepth 1 -name "*.cov.bed.gz" > ${project_dir}/sample_raw_rd.txt
 ```
 
 ### Step 3. GC normalization

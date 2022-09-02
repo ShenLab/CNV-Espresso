@@ -194,7 +194,7 @@ def confusion_matrix(model, test_img, test_label, nClasses, output_img_file=None
         labels = ['DEL', 'Not_DEL', 'Not_DUP', 'DUP']
     if nClasses == 3:
         print("3 classes label: 0-True del; 1-True dip; 2-True dup")
-        labels = ['Rare del', 'Artifacts', 'Rare dup']   
+        labels = ['Rare DEL', 'Artifacts', 'Rare DUP']   
     if nClasses == 2:
         print("2 classes label: 1-True; 0-False")
         labels = ['False', 'True']  

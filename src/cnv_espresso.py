@@ -66,13 +66,14 @@ def images(args):
     split_img       = args.split
     job_start       = args.start
     overwrite_img   = args.overwrite_img
+    offspring_img   = args.offspring_img
     try:
         sge_task_id = int(args.specific)
     except:
         sge_task_id = 'all'
 
     generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, \
-                    flanking, split_img, sge_task_id, job_start, overwrite_img)
+                    flanking, split_img, sge_task_id, job_start, overwrite_img, offspring_img)
 
 def images_human_view(args):
     RD_norm_dir     = args.rd_norm_dir
@@ -108,11 +109,12 @@ def train(args):
     cnn_train(true_del_file, true_dup_file, false_del_file, false_dup_file, use_gpu, batch_size, epochs, output_model_dir)
 
 def predict(args):
-    cnv_file    = args.cnv_list
-    model_file  = args.model
-    output_file = args.output
-    use_gpu     = args.use_gpu
-    cnn_prediction(cnv_file, model_file, use_gpu, output_file)
+    cnv_file      = args.cnv_list
+    model_file    = args.model
+    output_file   = args.output
+    use_gpu       = args.use_gpu
+    offspring_img = args.offspring_img
+    cnn_prediction(cnv_file, model_file, use_gpu, output_file, offspring_img)
 
 # Main function
 parser = argparse.ArgumentParser(prog='cnv_espresso', description='Validate CNVs in silico')
@@ -154,6 +156,7 @@ img_parser.add_argument('--split', required=False, default=False, help='Generate
 img_parser.add_argument('--specific', required=False, default=False, help='Generate ONE image for a specific CNV in the list file')
 img_parser.add_argument('--start', required=False, default=False, help='The number from which image is generated')
 img_parser.add_argument('--overwrite_img', required=False, default=True, help='Overwrite the current image if it exists.')
+img_parser.add_argument('--offspring_img', required=False, type=bool, default=False, help='Genereate images for offspring. This function is used for transmission analysis.')
 img_parser.set_defaults(func=images)
 
 #Generate images for human view
@@ -191,6 +194,7 @@ pred_parser.add_argument('--cnv_list', required=True, help='Please input the CNV
 pred_parser.add_argument('--model', required=True, help='Please input a trained CNN model file')
 pred_parser.add_argument('--use_gpu', required=False, default=False, help='Predict CNVs by using GPU or CPU')
 pred_parser.add_argument('--output', required=True, help='Output CNV validation results')
+pred_parser.add_argument('--offspring_img', required=False, type=bool, default=False, help='In silico confirm images for offspring. This function is used for transmission analysis.')
 pred_parser.set_defaults(func=predict)
 
 args = parser.parse_args()
