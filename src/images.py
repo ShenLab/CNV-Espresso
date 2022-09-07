@@ -28,7 +28,7 @@ color_del, color_dup = (0,0,1), (0,0,1) #blue for three classes labels
 
 def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file, 
                         RD_norm_dir, ref_samples_dir, output_path, corr_threshold, 
-                        flanking, split_img, overwrite_img, offspring_img):
+                        flanking, single_img_info, overwrite_img, offspring_img):
     index = int(sge_task_id)-1
 
     # ignore img if overwrite is turned off
@@ -65,6 +65,9 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
         output_EntireCNV_image_dir  = output_path + '/images_transmission_analysis/'
     else:
         output_EntireCNV_image_dir  = output_path + '/images/'
+
+    if single_img_info == True:
+        output_single_img_info_dir  = output_path + '/single_img_info/'
 
     # fetch the CNV info from cnv_data_df
     sampleID  = row[col_sampleID]
@@ -111,30 +114,7 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
     else:    
         cnv_CNLearn_str = "True" if cnv_CNLearn_label == 1 else "False"
     
-#    ## check if the image is already exist.
-#
-#    sample_img_file = func.fetch_relative_file_path(output_EntireCNV_image_dir, 
-#                                                    "*"+sampleID+"*"+cnv_chr+'*'+str(cnv_start)+"_"+str(cnv_end)+"*"+cnv_type,'png')
-#
-#    if offspring_img == True:
-#        offspring_img_file = func.fetch_relative_file_path(output_EntireCNV_image_dir, 
-#                                                        "*"+offspringID+"*"+cnv_chr+'*'+str(cnv_start)+"_"+str(cnv_end)+"*"+cnv_type,'png')
-#
-#    if os.path.exists(sample_img_file):
-#        print("[%d|%d] Image file exists %s %s:%d-%d %s add the img_path to table."% \
-#                (len(cnv_data_df), index+1, sampleID, cnv_chr, cnv_start, cnv_end, cnv_type))
-#        cnv_data_df.loc[index, 'img_path'] = sample_img_file
-#        if offspring_img != True:
-#            return None
-#        else:
-#            if os.path.exists(offspring_img_file):
-#                print("[%d|%d] Image file exists %s %s:%d-%d %s add the img_path to table."% \
-#                        (len(cnv_data_df), index+1, offspringID, cnv_chr, cnv_start, cnv_end, cnv_type))
-#                cnv_data_df.loc[index, 'Offspring_img_path'] = offspring_img_file
-#                cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
-#                return None
-#
-    ## 
+
     print("[%d|%d] Illustrating: %s %s:%d-%d %s #targets:%s Label:%s"% \
            (len(cnv_data_df), index+1, sampleID, cnv_chr, cnv_start, cnv_end, cnv_type, str(cnv_num_targets), cnv_gsd_str))
 
@@ -207,13 +187,19 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
         ax_rd.plot(case_pos_df_cumLogDiff, np.log1p(RD_cnv_region_df["RD_norm"]), color=case_sample_color , marker='o', linewidth=2)
 
     ax_rd.set_title(title_info)
+
     ### write the img path to the cnv_file_w_img_file
-    image_file = str(index+1).zfill(len(str(len(cnv_data_df)))) + "_" + sampleID + "_" + \
+    image_file = output_EntireCNV_image_dir + str(index+1).zfill(len(str(len(cnv_data_df)))) + "_" + sampleID + "_" + \
                     str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
-                    "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region_df))+"wins_"+cnv_type+".png"
-    img_path = output_EntireCNV_image_dir+image_file
-    print("  --Step4. Output image file to %s."%(img_path))
-    plt.savefig(img_path)
+                    "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region_df))+"wins_"+cnv_type+".png"                
+    image_file = image_file.replace("//", "/")
+
+    if single_img_info == True:
+        single_cnv_info_file = output_single_img_info_dir + func.extractFilePathNameExtension(image_file)[1]+'.csv'
+        single_cnv_info_file = single_cnv_info_file.replace("//","/")
+
+    print("  --Step4. Output image file to %s."%(image_file))
+    plt.savefig(image_file)
     plt.close()  
 
     '''
@@ -225,7 +211,7 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
                                    "  " + str((cnv_end-cnv_start)/1000) + 'kb' + "  #targets:" + str(cnv_num_targets) + \
                                     "  #wins:" + str(len(RD_cnv_region_df)) + "  "+ cnv_type
 
-        offspring_fig = plt.figure(dpi=150,figsize=(10, 7)) 
+        offspring_fig   = plt.figure(dpi=150,figsize=(10, 7)) 
         offspring_ax_rd = offspring_fig.subplots(nrows=1, ncols=1)
 
         ### plot reference samples
@@ -249,32 +235,33 @@ def generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
 
         offspring_ax_rd.set_title(offspring_title_info)
         ### write the img path to the cnv_file_w_img_file_transmission
-        offspring_image_file = str(index+1).zfill(len(str(len(cnv_data_df)))) + "_" + offspringID + "_" + \
+        offspring_image_file = output_EntireCNV_image_dir + str(index+1).zfill(len(str(len(cnv_data_df)))) + "_" + offspringID + "_" + \
                                 str(cnv_chr)+"_"+str(cnv_start)+"_"+str(cnv_end) + \
                                 "_"+str(cnv_num_targets)+"tgs_"+str(len(RD_cnv_region_df))+"wins_"+cnv_type+".png"
-        offspring_img_path = output_EntireCNV_image_dir+offspring_image_file
+        offspring_img_path = offspring_img_path.replace("//","/")
         print("  --Step4_offspring. Output corrsponding offspring image file to %s."%(offspring_img_path))
         plt.savefig(offspring_img_path)
         plt.close()  
 
-    print("  --Step5. Update the %s with img path."%cnv_info_w_img_file)
-    lock_flag = lockfile.LockFile(cnv_info_w_img_file)
-    while lock_flag.is_locked():
-        sleep(random.randint(1,100)/100)
-    lock_flag.acquire()
-    cnv_data_df = pd.read_csv(cnv_info_w_img_file)
+    print("  --Step5. Output CNV info with img path: %s"%(cnv_info_w_img_file if single_img_info==False else single_cnv_info_file))
     cnv_data_df.loc[index, 'num_of_win'] = len(RD_cnv_region_df)
-    cnv_data_df.loc[index, 'img_path']   = img_path
+    cnv_data_df.loc[index, 'img_path']   = image_file
     if offspring_img == True:
-        cnv_data_df.loc[index,'Offspring_img_path'] = offspring_img_path
+       cnv_data_df.loc[index,'Offspring_img_path'] = offspring_img_path
+    
+    if single_img_info == False:
+        cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
+    else:
+        if index == 0:
+            cnv_data_df.loc[index].to_frame().T.to_csv(single_cnv_info_file, index=False, header=True)
+        else:
+            cnv_data_df.loc[index].to_frame().T.to_csv(single_cnv_info_file, index=False, header=False)
 
-    cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
-    lock_flag.release()
     print("  --[Done].")
 
-def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, split_img, 
+def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, flanking, single_img_info, 
                     sge_task_id, job_start, overwrite_img, offspring_img):
-    print("sge_task_id::",sge_task_id)
+    print("sge_task_id:", sge_task_id)
     try:
         sge_task_id = int(sge_task_id)
     except:
@@ -287,10 +274,6 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
         output_EntireCNV_image_dir  = output_path + '/images/' 
     os.makedirs(output_EntireCNV_image_dir, exist_ok=True)
 
-    if split_img == True:
-        output_SplitCNV_image_dir   = output_path + '/images_split_cnvs/'
-        os.makedirs(output_SplitCNV_image_dir, exist_ok=True)
-    
     ## Prepare for cnv info file with image path
     '''
     Idea: for the very beginning, copy the cnv_file to cnv_w_img_file, then
@@ -309,11 +292,12 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
             cnv_data_df = pd.read_table(cnv_file)
         cnv_data_df.to_csv(cnv_info_w_img_file, index=False)
     else:
-        # make sure the file is not locked(under writing).
-        lock_flag = lockfile.LockFile(cnv_info_w_img_file)
-        while lock_flag.is_locked():
-            sleep(random.randint(1,100)/1000)
         cnv_data_df = pd.read_csv(cnv_info_w_img_file)  
+
+    '''when we run under cluster, we will generate split info files w/ single cnv info with img path.'''
+    if single_img_info == True:
+        output_single_img_info_dir = output_path + '/single_img_info/'
+        os.makedirs(output_single_img_info_dir, exist_ok=True)
 
     '''creat columns or fillna'''
     if 'num_of_win' in cnv_data_df.columns:
@@ -370,16 +354,16 @@ def generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_th
                index += 1
                generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
                                     RD_norm_dir, ref_samples_dir, output_path, corr_threshold, 
-                                    flanking, split_img, overwrite_img, offspring_img)
+                                    flanking, single_img_info, overwrite_img, offspring_img)
         else:
             for index in range(int(job_start), len(cnv_data_df)+1):
                 generate_one_image(cnv_data_df, index, col_dict, cnv_info_w_img_file, 
                                     RD_norm_dir, ref_samples_dir, output_path, corr_threshold,
-                                    flanking, split_img, overwrite_img, offspring_img)
+                                    flanking, single_img_info, overwrite_img, offspring_img)
 
                 print("  There are %d images left. Continue ..."%(len(cnv_data_df)-index))
     else:
         generate_one_image(cnv_data_df, sge_task_id, col_dict, cnv_info_w_img_file,
                             RD_norm_dir, ref_samples_dir, output_path, corr_threshold,
-                             flanking, split_img, overwrite_img, offspring_img)
+                             flanking, single_img_info, overwrite_img, offspring_img)
 

@@ -10,7 +10,7 @@
 #SBATCH -J image 
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
-#SBATCH --mem 5G
+#SBATCH --mem 2G
 #SBATCH --time=99:99:99
 
 set -oe pipefail
@@ -31,6 +31,7 @@ python ${script_dir}cnv_espresso.py images \
     --cnv_list ${cnv_file} \
     --output ${output_dir} \
     --specific ${SGE_TASK_ID}${SLURM_ARRAY_TASK_ID} \
-    --overwrite_img ${overwrite_img}
+    --overwrite_img ${overwrite_img} \
+    --single_img_info True
 
 echo "Job ended on `hostname` at `date`"

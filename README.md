@@ -6,7 +6,7 @@ A tool designed for confirming ***C***opy ***N***umber ***V***ariants from ***E*
 
 ## Dependencies
 
-Python with the following required libraries: tensorflow, keras, sklearn, numpy, pandas, matplotlib, seaborn, Pillow, pysam and lockfile
+Python with the following required libraries: tensorflow, keras, sklearn, numpy, pandas, matplotlib, seaborn, Pillow and pysam.
 
 Mosdepth: https://github.com/brentp/mosdepth
 
@@ -105,14 +105,14 @@ python ${script_dir}cnv_espresso.py normalization \
 windows_file=${project_dir}/windows.bed
 RD_list=${project_dir}/sample_raw_rd.txt
 output_dir=${project_dir}/norm/
+num_tasks=`wc -l ${RD_list} | cut -f1 -d" "`
 
-# E.g., we want to normalize 1000 samples
 ## By SGE cluster
-qsub -t 1-1000 ${script_dir}cluster_gc_norm.sh \
+qsub -t 1-${num_tasks} ${script_dir}cluster_gc_norm.sh \
     ${script_dir} ${windows_file} ${RD_list} ${output_dir}
 
 ## By Slurm workload manager
-sbatch -a 1-1000 ${script_dir}cluster_gc_norm.sh \
+sbatch -a 1-${num_tasks} ${script_dir}cluster_gc_norm.sh \
     ${script_dir} ${windows_file} ${RD_list} ${output_dir}
 ```
 
@@ -132,7 +132,7 @@ python ${script_dir}cnv_espresso.py reference \
 
 ### Step 5. Encode images 
 
-Here, we will take other CNV caller's output (e.g. `xhmm.xcnv`) as our input and we will use the following commands to encode those CNV predictions into images.
+Here, we will take the CNV caller's output (e.g. `xhmm.xcnv`) as our input and we will use the following commands to encode those CNV predictions into images.
 
 ```bash
 RD_norm_dir=${project_dir}/norm/
@@ -152,7 +152,7 @@ python ${script_dir}cnv_espresso.py images \
     --overwrite_img False
 ```
 
-- Option 2. Generate images by cluster
+- Option 2. Generate images by a cluster
 Note: please modify the path of script in the `cluster_images.sh` file at first.
 
 ```bash
@@ -167,6 +167,10 @@ qsub -t 1-${num_tasks} ${script_dir}cluster_images.sh \
 sbatch -a 1-${num_tasks} ${script_dir}cluster_images.sh \
     ${script_dir} ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} ${overwrite_img}
 
+# Collect the absolute pathes of images and add this information to ‘cnv_info_w_img.csv’
+python ${script_dir}cnv_espresso.py collect_images \
+    --cnv_file ${cnv_w_img_file} \
+    --output_dir ${output_dir}
 ```
 
 A few example images are located [here](https://github.com/ShenLab/CNV-Espresso/tree/main/example/images). 

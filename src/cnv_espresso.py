@@ -17,6 +17,7 @@ from windows import *
 from normalization import * 
 from reference import *
 from images import *
+from collect_images import *
 from images_human_view import *
 from train import *
 from predict import *
@@ -63,7 +64,7 @@ def images(args):
     output_path     = args.output
     corr_threshold  = float(args.corr_threshold)
     flanking        = args.flanking
-    split_img       = args.split
+    single_img_info = args.single_img_info
     job_start       = args.start
     overwrite_img   = args.overwrite_img
     offspring_img   = args.offspring_img
@@ -73,7 +74,14 @@ def images(args):
         sge_task_id = 'all'
 
     generate_images(RD_norm_dir, ref_samples_dir, cnv_file, output_path, corr_threshold, \
-                    flanking, split_img, sge_task_id, job_start, overwrite_img, offspring_img)
+                    flanking, single_img_info, sge_task_id, job_start, overwrite_img, offspring_img)
+
+def collect_imgs(args):
+    cnv_file        = args.cnv_file
+    output_dir      = args.output_dir
+    transmission_analysis = args.transmission_analysis
+
+    collect_images(cnv_file, output_dir, transmission_analysis)
 
 def images_human_view(args):
     RD_norm_dir     = args.rd_norm_dir
@@ -127,7 +135,7 @@ win_parser.add_argument('--ref', required=True, help='Reference file')
 win_parser.add_argument('--output', required=True, help='Directory for windows.bed file')
 win_parser.set_defaults(func=windows)
 
-#Normalize read depth signal
+## Normalize read depth signal
 svd_parser = subparsers.add_parser('normalization', help="GC correction, zscore by negative distribution for a given sample")
 svd_parser.add_argument('--windows', required=True, help='Please input the target information including GC content')
 svd_parser.add_argument('--input', required=False, help='Please input a read depth file for a given sample')
@@ -136,7 +144,7 @@ svd_parser.add_argument('--output', required=False, help='Output folder for norm
 svd_parser.add_argument('--debug', required=False, default=False,  help='Output folder for normalized read depth files')
 svd_parser.set_defaults(func=normalization)
 
-#Select reference samples
+## Select reference samples
 ref_parser = subparsers.add_parser('reference', help="Calculate the correlation matrix and select references")
 ref_parser.add_argument('--project_dir', required=True, help='Project folder')
 ref_parser.add_argument('--norm_list', required=True, help='Normlized read depth file list')
@@ -144,7 +152,7 @@ ref_parser.add_argument('--num_ref', required=False, default=100, help='Max numb
 ref_parser.add_argument('--corr_threshold', required=False, default=-1, help='The mininum Pearson correlation threshold for reference samples')
 ref_parser.set_defaults(func=reference)
 
-#Generate images
+## Generate images
 img_parser = subparsers.add_parser('images', help="Encode CNV predictions into images")
 img_parser.add_argument('--rd_norm_dir', required=True, help='The folder for normalized read depth files')
 img_parser.add_argument('--ref_dir', required=True, help='The folder for reference samples')
@@ -152,14 +160,21 @@ img_parser.add_argument('--cnv_list', required=True, help='Please input a CNV pr
 img_parser.add_argument('--output', required=True, help='Output folder for images')
 img_parser.add_argument('--corr_threshold', required=False, default=0.7, help='The folder for normalized read depth files')
 img_parser.add_argument('--flanking', required=False, default=False, help='The folder for normalized read depth files')
-img_parser.add_argument('--split', required=False, default=False, help='Generate split sliding window images for CNVs')
+img_parser.add_argument('--single_img_info', required=False, type=bool, default=False, help='Single CNV info file')
 img_parser.add_argument('--specific', required=False, default=False, help='Generate ONE image for a specific CNV in the list file')
 img_parser.add_argument('--start', required=False, default=False, help='The number from which image is generated')
 img_parser.add_argument('--overwrite_img', required=False, default=True, help='Overwrite the current image if it exists.')
 img_parser.add_argument('--offspring_img', required=False, type=bool, default=False, help='Genereate images for offspring. This function is used for transmission analysis.')
 img_parser.set_defaults(func=images)
 
-#Generate images for human view
+## Collect images
+img_parser = subparsers.add_parser('collect_images', help="Collect the location of generated images and output/annotate them to the cnv list file.")
+img_parser.add_argument('--cnv_file', required=True, help='Please input the CNV list file')
+img_parser.add_argument('--output_dir', required=True, help='Output folder for images')
+img_parser.add_argument('--transmission_analysis', required=False, type=bool, default=False, help='For transmission analysis. Specifically, we need to deal with images for offspring.')
+img_parser.set_defaults(func=collect_imgs)
+
+## Generate images for human view
 img_parser = subparsers.add_parser('images_human_view', help="Encode CNV predictions into images for human review")
 img_parser.add_argument('--rd_norm_dir', required=True, help='The folder for normalized read depth files')
 img_parser.add_argument('--ref_dir', required=True, help='The folder for reference samples')
@@ -176,7 +191,7 @@ img_parser.add_argument('--pedigree', required=False, default=False, help='If in
 img_parser.add_argument('--overwrite_img', required=False, default=True, help='Overwrite the current image if it exists.')
 img_parser.set_defaults(func=images_human_view)
 
-#Train the CNN model
+## Train the CNN model
 cnn_parser = subparsers.add_parser('train', help="Train the CNN model from scratch")
 cnn_parser.add_argument('--true_del', required=True, help='Please input a bunch of true deletions with image path for training the model')
 cnn_parser.add_argument('--true_dup', required=True, help='Please input a bunch of true duplications with image path for training the model')
@@ -188,7 +203,7 @@ cnn_parser.add_argument('--epochs', required=False, default=20, help='Please inp
 cnn_parser.add_argument('--output', required=True, help='Output directory for a trained CNN model')
 cnn_parser.set_defaults(func=train)
 
-#Prediction
+## Prediction
 pred_parser = subparsers.add_parser('predict', help="Validate CNV predictions by CNN")
 pred_parser.add_argument('--cnv_list', required=True, help='Please input the CNV list for validation')
 pred_parser.add_argument('--model', required=True, help='Please input a trained CNN model file')
