@@ -167,10 +167,12 @@ qsub -t 1-${num_tasks} ${script_dir}cluster_images.sh \
 sbatch -a 1-${num_tasks} ${script_dir}cluster_images.sh \
     ${script_dir} ${RD_norm_dir} ${ref_samples_dir} ${cnv_list} ${output_dir} ${overwrite_img}
 
-# Collect the absolute pathes of images and add this information to ‘cnv_info_w_img.csv’
-python ${script_dir}cnv_espresso.py collect_images \
-    --cnv_file ${cnv_w_img_file} \
-    --output_dir ${output_dir}
+# Collect info of CNVs and images processed by cluster into a single file.
+wc -l ${output_dir}cnv_info_w_img.csv
+
+find ${output_dir}/single_img_info/ -maxdepth 1 -type f -name '*.csv' -print0 |
+sort -zV |
+xargs -0 cat >${output_dir}cnv_info_w_img_collected.csv
 ```
 
 A few example images are located [here](https://github.com/ShenLab/CNV-Espresso/tree/main/example/images). 
@@ -204,7 +206,7 @@ Alternatively, we also prepared a jupyter notebook (**[train.ipynb](https://gith
 ### Step 7. Confirming CNV predictions *in silico* 
 
 ```bash
-cnv_w_img_file=${project_dir}/cnv_info_w_img.csv
+cnv_w_img_file=${project_dir}/cnv_info_w_img.csv (or cnv_info_w_img_collected.csv)
 model_file='/path/to/model/MobileNet_v1_fine-tuning_3classes_log_transformed.h5'
 output_file=${project_dir}/cnv_espresso_prediction.csv
 
@@ -215,13 +217,21 @@ python ${script_dir}cnv_espresso.py predict \
     --use_gpu  False
 ```
 
+## Utilities
+
+1. Collect the absolute path of images and annotate this information to ‘cnv_info_w_img.csv’
+
+```bash
+python ${script_dir}cnv_espresso.py collect_images \
+    --cnv_file ${cnv_w_img_file} \
+    --output_dir ${output_dir}
+```
+
+
+
 ## Citation
 
-Accurate in silico confirmation of rare copy number variant calls from exome sequencing data using transfer learning
-Renjie Tan, Yufeng Shen
-bioRxiv 2022.03.09.483665; doi: https://doi.org/10.1101/2022.03.09.483665
-
-
+Renjie Tan, Yufeng Shen, Accurate *in silico* confirmation of rare copy number variant calls from exome sequencing data using transfer learning, *Nucleic Acids Research*, 2022;, gkac788, https://doi.org/10.1093/nar/gkac788
 
 ## Contact
 
