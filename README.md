@@ -3,6 +3,10 @@ A tool designed for confirming ***C***opy ***N***umber ***V***ariants from ***E*
 
 <img src="https://shenlab.github.io/images/cnv_espresso.png?raw=true" style="float:right;width:150px" alt="cnv-espresso">
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> d8601efdba48c8c6e15cc91a4f7e618b9fed0cc2
 
 ## Dependencies
 
@@ -71,10 +75,6 @@ sbatch -a 1-${num_tasks} ${script_dir}cluster_mosdepth.sh \
 
 Collect all the coverage files for downstream usage. 
 
-```bash
-ls ${output_rd_dir}*.cov.bed.gz > ${project_dir}/sample_raw_rd.txt 
-```
-or
 ```bash
 find ${output_rd_dir} -maxdepth 1 -name "*.cov.bed.gz" > ${project_dir}/sample_raw_rd.txt
 ```
