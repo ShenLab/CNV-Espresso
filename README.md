@@ -76,7 +76,7 @@ ls ${output_rd_dir}*.cov.bed.gz > ${project_dir}/sample_raw_rd.txt
 ```
 or
 ```bash
-find ~/projects_meta_data/spark/02_RD_mosdepth_windows/SPARK_WES_1/ -maxdepth 1 -name "*.cov.bed.gz" > ${project_dir}/sample_raw_rd.txt
+find ${output_rd_dir} -maxdepth 1 -name "*.cov.bed.gz" > ${project_dir}/sample_raw_rd.txt
 ```
 
 ### Step 3. GC normalization
