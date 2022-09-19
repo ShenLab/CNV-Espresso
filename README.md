@@ -3,11 +3,6 @@ A tool designed for confirming ***C***opy ***N***umber ***V***ariants from ***E*
 
 <img src="https://shenlab.github.io/images/cnv_espresso.png?raw=true" style="float:right;width:150px" alt="cnv-espresso">
 
-<<<<<<< HEAD
-=======
-
->>>>>>> d8601efdba48c8c6e15cc91a4f7e618b9fed0cc2
-
 ## Dependencies
 
 Python with the following required libraries: tensorflow, keras, sklearn, numpy, pandas, matplotlib, seaborn, Pillow and pysam.
@@ -15,8 +10,6 @@ Python with the following required libraries: tensorflow, keras, sklearn, numpy,
 Mosdepth: https://github.com/brentp/mosdepth
 
 Tabix: http://www.htslib.org/doc/tabix.html (optional)
-
-
 
 ## Tutorial
 
@@ -226,8 +219,6 @@ python ${script_dir}cnv_espresso.py collect_images \
     --cnv_file ${cnv_w_img_file} \
     --output_dir ${output_dir}
 ```
-
-
 
 ## Citation
 
